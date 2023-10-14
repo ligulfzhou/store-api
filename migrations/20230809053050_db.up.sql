@@ -18,9 +18,10 @@ create table goods
 create table items
 (
     id          serial,
+    brand       text      not null default '',   -- 品牌
     cates1_id   integer   not null default 0,    -- 大类ID
     cates2_id   integer   not null default 0,    -- 小类ID
-    goods_no    text      not null default '',    -- 货号
+    goods_no    text      not null default '',   -- 货号
     color       text      not null default '',   -- 颜色
     name        text      not null default '',   -- 产品名称
     size        text      not null default '',   -- 规格
@@ -37,7 +38,7 @@ create table items
 create table departments
 (
     id    serial,
-    name  text      not null default '',  -- 部门名称
+    name  text not null default '',       -- 部门名称
     steps integer[] not null default '{}' -- 流程位续
 );
 

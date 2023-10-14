@@ -1,4 +1,5 @@
-use crate::ERPResult;
+use crate::handler::routes_items::ItemListParam;
+use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres, QueryBuilder};
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
@@ -41,5 +42,88 @@ impl ItemsModel {
         // .map_err(ERPError::DBError)?;
 
         Ok(())
+    }
+}
+
+// for routers
+impl ItemsModel {
+    pub async fn get_list(
+        db: &Pool<Postgres>,
+        param: &ItemListParam,
+    ) -> ERPResult<Vec<ItemsModel>> {
+        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from items ");
+        if param.cates1_id > 0 || param.cates2_id > 0 || param.has_storage > 0 {
+            sql.push(" where ");
+            let mut should_add_and = false;
+
+            if param.cates1_id > 0 {
+                if should_add_and {
+                    sql.push(" and cates1_id = ");
+                } else {
+                    sql.push(" cates1_id = ");
+                }
+
+                sql.push_bind(param.cates1_id);
+                should_add_and = true;
+            }
+
+            if param.cates2_id > 0 {
+                if should_add_and {
+                    sql.push(" and cates2_id = ");
+                } else {
+                    sql.push(" cates2_id = ");
+                }
+                sql.push_bind(param.cates2_id);
+            }
+        }
+
+        let field = param.sorter_field.as_deref().unwrap_or("id");
+        let order = param.sorter_order.as_deref().unwrap_or("desc");
+
+        sql.push(format!(" order by {} {}", field, order));
+
+        let items = sql
+            .build_query_as::<ItemsModel>()
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(items)
+    }
+
+    pub async fn get_count(db: &Pool<Postgres>, param: &ItemListParam) -> ERPResult<i32> {
+        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from items ");
+        if param.cates1_id > 0 || param.cates2_id > 0 || param.has_storage > 0 {
+            sql.push(" where ");
+            let mut should_add_and = false;
+
+            if param.cates1_id > 0 {
+                if should_add_and {
+                    sql.push(" and cates1_id = ");
+                } else {
+                    sql.push(" cates1_id = ");
+                }
+
+                sql.push_bind(param.cates1_id);
+                should_add_and = true;
+            }
+
+            if param.cates2_id > 0 {
+                if should_add_and {
+                    sql.push(" and cates2_id = ");
+                } else {
+                    sql.push(" cates2_id = ");
+                }
+                sql.push_bind(param.cates2_id);
+            }
+        }
+
+        let count = sql
+            .build_query_as::<(i64,)>()
+            .fetch_one(db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(count.0 as i32)
     }
 }

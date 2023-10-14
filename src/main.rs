@@ -90,6 +90,7 @@ async fn main() {
         .merge(handler::routes_customer::routes(app_state.clone()))
         .merge(handler::routes_excel::routes(app_state.clone()))
         .merge(handler::routes_login::routes(app_state.clone()))
+        .merge(handler::routes_items::routes(app_state.clone()))
         // todo: for test
         .layer(axum::middleware::map_response(main_response_mapper))
         .fallback_service(handler::routes_static::routes())

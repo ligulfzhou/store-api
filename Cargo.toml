@@ -32,6 +32,8 @@ dotenv = "0.15.0"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 
+async-trait = "0.1"
+
 # read excel
 # calamine = {version = "0.22.0", features = ["picture"]}
 # calamine does not support reading image from cell

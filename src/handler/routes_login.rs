@@ -1,7 +1,9 @@
 use crate::dto::dto_account::AccountDto;
 use crate::model::account::{AccountModel, DepartmentModel};
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse};
-use crate::{AppState, ERPError, ERPResult};
+use crate::service::account_service::AccountService;
+use crate::state::account_state::AccountState;
+use crate::{ERPError, ERPResult};
 use axum::extract::State;
 use axum::http::header;
 use axum::response::IntoResponse;
@@ -9,13 +11,12 @@ use axum::{routing::post, Json, Router};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::WithRejection;
 use serde::Deserialize;
-use std::sync::Arc;
+use tracing::__macro_support::MacroCallsite;
 
-pub fn routes(state: Arc<AppState>) -> Router {
+pub fn routes() -> Router<AccountState> {
     Router::new()
         .route("/api/login", post(api_login))
         .route("/api/logout", post(api_logout))
-        .with_state(state)
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -25,40 +26,24 @@ pub struct LoginPayload {
 }
 
 async fn api_login(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AccountState>,
     WithRejection(Json(payload), _): WithRejection<Json<LoginPayload>, ERPError>,
 ) -> Result<impl IntoResponse, ERPError> {
     tracing::info!("->> {:<12}, api_login", "handler");
-    let account = sqlx::query_as!(
-        AccountModel,
-        "select * from accounts where account=$1",
-        payload.account
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
 
-    if account.is_none() {
-        return Err(ERPError::NotFound("账号不存在".to_string()));
-    }
+    let account = state
+        .account_repo
+        .find_user_by_account(&payload.account)
+        .await
+        .ok_or(ERPError::NotFound("账号不存在".to_string()))?;
 
-    let account_unwrap = account.unwrap();
     // todo: hash password.
-    if account_unwrap.password != payload.password {
+    if account.password != payload.password {
         return Err(ERPError::LoginFailForPasswordIsWrong);
     }
 
-    let account_id = account_unwrap.id;
-    let department = sqlx::query_as!(
-        DepartmentModel,
-        "select * from departments where id=$1",
-        account_unwrap.department_id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    let account_dto = AccountDto::from(account_unwrap, department);
+    let account_id = account.id;
+    let account_dto = AccountDto::from(account);
 
     let cookie = Cookie::build("account_id", account_id.to_string())
         .path("/")

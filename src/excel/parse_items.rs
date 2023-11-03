@@ -5,7 +5,6 @@ use umya_spreadsheet::*;
 /*
 品牌	产品大类	产品小类	货号	产品名称	规格	单位	条码	标准售价	进货价	供应商	库存数	修改时间	描述	备注
 */
-
 pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
     let path = std::path::Path::new(file_path);
     let mut sheets = reader::xlsx::read(path).unwrap();

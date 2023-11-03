@@ -1,5 +1,5 @@
 // use std::sync::Arc;
-//
+
 // use axum::{
 //     extract::State,
 //     http::{header, Request, StatusCode},
@@ -7,22 +7,22 @@
 //     response::IntoResponse,
 //     Json,
 // };
-//
+
 // use axum_extra::extract::cookie::CookieJar;
 // use jsonwebtoken::{decode, DecodingKey, Validation};
 // use serde::Serialize;
-//
+
 // use crate::{
 //     model::{TokenClaims, User},
 //     AppState,
 // };
-//
+
 // #[derive(Debug, Serialize)]
 // pub struct ErrorResponse {
 //     pub status: &'static str,
 //     pub message: String,
 // }
-//
+
 // pub async fn auth<B>(
 //     cookie_jar: CookieJar,
 //     State(data): State<Arc<AppState>>,

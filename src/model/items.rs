@@ -6,8 +6,8 @@ use sqlx::{Pool, Postgres, QueryBuilder};
 pub struct ItemsModel {
     pub id: i32,
     pub brand: String,    // 品牌
-    pub cates1_id: i32,   // 产品大类
-    pub cates2_id: i32,   // 产品小类
+    pub cates1: String,   // 产品大类
+    pub cates2: String,   // 产品小类
     pub goods_no: String, // 货号
     pub color: String,    // 颜色
     pub name: String,     // 产品名称
@@ -21,11 +21,11 @@ pub struct ItemsModel {
 impl ItemsModel {
     pub async fn insert_multiple_items(db: &Pool<Postgres>, rows: &[ItemsModel]) -> ERPResult<()> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into items (cates1_id, cates2_id, goods_no, color, name, size, unit, barcode, sell_price, buy_price ) ");
+            QueryBuilder::new("insert into items (cates1, cates2, goods_no, color, name, size, unit, barcode, sell_price, buy_price ) ");
 
         query_builder.push_values(rows, |mut b, item| {
-            b.push_bind(item.cates1_id)
-                .push_bind(item.cates2_id)
+            b.push_bind(item.cates1.clone())
+                .push_bind(item.cates2.clone())
                 .push_bind(item.goods_no.clone())
                 .push_bind(item.color.clone())
                 .push_bind(item.name.clone())
@@ -39,7 +39,6 @@ impl ItemsModel {
         query_builder.push(" returning id;");
 
         query_builder.build().execute(db).await?;
-        // .map_err(ERPError::DBError)?;
 
         Ok(())
     }
@@ -52,28 +51,31 @@ impl ItemsModel {
         param: &ItemListParam,
     ) -> ERPResult<Vec<ItemsModel>> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from items ");
-        if param.cates1_id > 0 || param.cates2_id > 0 || param.has_storage > 0 {
+        if param.cates1_id.unwrap_or(0) > 0
+            || param.cates2_id.unwrap_or(0) > 0
+            || param.has_storage.unwrap_or(0) > 0
+        {
             sql.push(" where ");
             let mut should_add_and = false;
 
-            if param.cates1_id > 0 {
+            if param.cates1_id.unwrap_or(0) > 0 {
                 if should_add_and {
                     sql.push(" and cates1_id = ");
                 } else {
                     sql.push(" cates1_id = ");
                 }
 
-                sql.push_bind(param.cates1_id);
+                sql.push_bind(param.cates1_id.unwrap_or(0));
                 should_add_and = true;
             }
 
-            if param.cates2_id > 0 {
+            if param.cates2_id.unwrap_or(0) > 0 {
                 if should_add_and {
                     sql.push(" and cates2_id = ");
                 } else {
                     sql.push(" cates2_id = ");
                 }
-                sql.push_bind(param.cates2_id);
+                sql.push_bind(param.cates2_id.unwrap_or(0));
             }
         }
 
@@ -93,28 +95,31 @@ impl ItemsModel {
 
     pub async fn get_count(db: &Pool<Postgres>, param: &ItemListParam) -> ERPResult<i32> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from items ");
-        if param.cates1_id > 0 || param.cates2_id > 0 || param.has_storage > 0 {
+        if param.cates1_id.unwrap_or(0) > 0
+            || param.cates2_id.unwrap_or(0) > 0
+            || param.has_storage.unwrap_or(0) > 0
+        {
             sql.push(" where ");
             let mut should_add_and = false;
 
-            if param.cates1_id > 0 {
+            if param.cates1_id.unwrap_or(0) > 0 {
                 if should_add_and {
                     sql.push(" and cates1_id = ");
                 } else {
                     sql.push(" cates1_id = ");
                 }
 
-                sql.push_bind(param.cates1_id);
+                sql.push_bind(param.cates1_id.unwrap_or(0));
                 should_add_and = true;
             }
 
-            if param.cates2_id > 0 {
+            if param.cates2_id.unwrap_or(0) > 0 {
                 if should_add_and {
                     sql.push(" and cates2_id = ");
                 } else {
                     sql.push(" cates2_id = ");
                 }
-                sql.push_bind(param.cates2_id);
+                sql.push_bind(param.cates2_id.unwrap_or(0));
             }
         }
 

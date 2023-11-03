@@ -1,10 +1,11 @@
 -- 单位管理
 create table cates
 (
-    id        serial,
-    name      text    not null default '', -- 类名
-    cate_type integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
-    parent_id integer not null default 0   -- 父类
+    id          serial,
+    index       integer not null default 0,
+    name        text    not null default '', -- 类名
+    cate_type   integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
+    parent_name text    not null default ''  -- 父类
 );
 
 -- 确认需不需要
@@ -19,8 +20,8 @@ create table items
 (
     id          serial,
     brand       text      not null default '',   -- 品牌
-    cates1_id   integer   not null default 0,    -- 大类ID
-    cates2_id   integer   not null default 0,    -- 小类ID
+    cates1      text      not null default '',   -- 大类ID
+    cates2      text      not null default '',   -- 小类ID
     goods_no    text      not null default '',   -- 货号
     color       text      not null default '',   -- 颜色
     name        text      not null default '',   -- 产品名称
@@ -62,7 +63,6 @@ insert into accounts (name, account, password, department_id)
 values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
 insert into accounts (name, account, password, department_id)
 values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
-
 
 create table customers
 (

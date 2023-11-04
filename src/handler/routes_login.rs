@@ -1,7 +1,5 @@
 use crate::dto::dto_account::AccountDto;
-use crate::model::account::{AccountModel, DepartmentModel};
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse};
-use crate::service::account_service::AccountService;
 use crate::state::account_state::AccountState;
 use crate::{ERPError, ERPResult};
 use axum::extract::State;
@@ -11,7 +9,6 @@ use axum::{routing::post, Json, Router};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::WithRejection;
 use serde::Deserialize;
-use tracing::__macro_support::MacroCallsite;
 
 pub fn routes() -> Router<AccountState> {
     Router::new()

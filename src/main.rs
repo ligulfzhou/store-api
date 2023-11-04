@@ -17,10 +17,10 @@ mod excel;
 mod handler;
 mod middleware;
 mod model;
+mod repository;
 mod response;
 mod service;
 mod state;
-mod repository;
 
 pub use self::error::{ERPError, ERPResult};
 
@@ -28,13 +28,14 @@ pub use self::error::{ERPError, ERPResult};
 async fn main() {
     tracing_subscriber::fmt::init();
 
+    parameter::init();
     let port = parameter::get("PORT")
         .parse::<u16>()
         .expect("port should be number");
 
     let database = database::Database::init()
         .await
-        .unwrap_or_else(|e| panic!("Database error: {}", e.to_string()));
+        .unwrap_or_else(|e| panic!("Database error: {}", e));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     tracing::info!("=> Listen on {addr} \n");

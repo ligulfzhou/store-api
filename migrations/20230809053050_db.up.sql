@@ -1,11 +1,19 @@
 -- 单位管理
+-- create table cates
+-- (
+--     id          serial,
+--     index       integer not null default 0,
+--     name        text    not null default '', -- 类名
+--     cate_type   integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
+--     parent_name text    not null default ''  -- 父类
+-- );
+
 create table cates
 (
-    id          serial,
-    index       integer not null default 0,
-    name        text    not null default '', -- 类名
-    cate_type   integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
-    parent_name text    not null default ''  -- 父类
+    id        serial,
+    index     integer not null default 0,
+    name      text    not null default '', -- 类名
+    sub_cates text[] not null default '{}' -- 子类
 );
 
 -- 确认需不需要

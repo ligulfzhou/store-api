@@ -1,10 +1,11 @@
+use crate::config::database::DatabaseTrait;
 use crate::dto::dto_account::AccountDto;
 use crate::model::account::{AccountModel, DepartmentModel};
-use crate::{AppState, ERPError};
+use crate::state::account_state::AccountState;
+use crate::ERPError;
 use axum::{extract::State, http::Request, middleware::Next, response::IntoResponse};
 use axum_extra::extract::cookie::CookieJar;
 use serde::Serialize;
-use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
@@ -14,7 +15,7 @@ pub struct ErrorResponse {
 
 pub async fn auth<B>(
     cookie_jar: CookieJar,
-    State(state): State<Arc<AppState>>,
+    State(state): State<AccountState>,
     mut req: Request<B>,
     next: Next<B>,
 ) -> Result<impl IntoResponse, ERPError> {
@@ -31,7 +32,7 @@ pub async fn auth<B>(
         "select * from accounts where id={}",
         account_id
     ))
-    .fetch_optional(&state.db)
+    .fetch_optional(state.account_repo.db.get_pool())
     .await
     .map_err(ERPError::DBError)?;
 
@@ -44,11 +45,11 @@ pub async fn auth<B>(
         "select * from departments where id={}",
         account.department_id
     ))
-    .fetch_one(&state.db)
+    .fetch_one(state.account_repo.db.get_pool())
     .await
     .map_err(ERPError::DBError)?;
 
-    let account_dto = AccountDto::from(account, department);
+    let account_dto = AccountDto::from(account);
 
     req.extensions_mut().insert(account_dto);
     Ok(next.run(req).await)

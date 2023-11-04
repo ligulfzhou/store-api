@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AccountRepo {
-    db: Arc<Database>,
+    pub db: Arc<Database>,
 }
 
 impl AccountRepo {
@@ -22,5 +22,4 @@ impl AccountRepo {
         .await
         .unwrap_or(None)
     }
-    
 }

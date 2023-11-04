@@ -14,14 +14,14 @@ use std::sync::Arc;
 //         .with_state(state)
 // }
 //
-// #[derive(Deserialize)]
-// pub struct ItemListParam {
-//     pub cates1_id: Option<i32>,
-//     pub cates2_id: Option<i32>,
-//     pub has_storage: Option<i32>, // 0, 1(有库存), 2(无库存) // todo
-//     pub sorter_field: Option<String>,
-//     pub sorter_order: Option<String>,
-// }
+#[derive(Deserialize)]
+pub struct ItemListParam {
+    pub cates1_id: Option<i32>,
+    pub cates2_id: Option<i32>,
+    pub has_storage: Option<i32>, // 0, 1(有库存), 2(无库存) // todo
+    pub sorter_field: Option<String>,
+    pub sorter_order: Option<String>,
+}
 //
 // async fn api_item_list(
 //     State(state): State<Arc<AppState>>,

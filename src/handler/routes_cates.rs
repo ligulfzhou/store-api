@@ -1,5 +1,4 @@
 use crate::dto::dto_cates::CateDto;
-use crate::model::items::ItemsModel;
 use crate::response::api_response::APIListResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::state::cate_state::CateState;
@@ -12,6 +11,8 @@ pub fn routes() -> Router<CateState> {
     Router::new()
         .route("/api/cates", get(api_cates_list))
         .route("/api/save/cates", post(api_cates_list))
+        .route("/api/update/cates", post(api_cates_list))
+        .route("/api/extract/cates", post(api_cates_list))
 }
 
 async fn api_cates_list(State(state): State<CateState>) -> ERPResult<APIListResponse<CateDto>> {

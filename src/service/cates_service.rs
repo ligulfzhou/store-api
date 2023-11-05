@@ -3,8 +3,6 @@ use crate::dto::dto_cates::CateDto;
 use crate::model::cates::CateModel;
 use crate::ERPResult;
 use async_trait::async_trait;
-use itertools::Itertools;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -16,7 +14,11 @@ pub struct CateService {
 pub trait CateServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
     async fn get_all_cates(&self) -> ERPResult<Vec<CateDto>>;
-    async fn add_cate(&self) -> ERPResult<()>;
+
+    async fn update_cates(&self) -> ERPResult<()>;
+    // async fn add_cate(&self) -> ERPResult<()>;
+
+    async fn extract_cates(&self) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -36,7 +38,11 @@ impl CateServiceTrait for CateService {
         Ok(cates_dto)
     }
 
-    async fn add_cate(&self) -> ERPResult<()> {
+    async fn update_cates(&self) -> ERPResult<()> {
+        todo!()
+    }
+
+    async fn extract_cates(&self) -> ERPResult<()> {
         todo!()
     }
 }

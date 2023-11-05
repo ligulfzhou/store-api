@@ -8,6 +8,26 @@
 --     parent_name text    not null default ''  -- 父类
 -- );
 
+-- 客户
+create table customers
+(
+    id          serial,
+    customer_no text    not null default '', -- 客户编号
+    ty_pe        integer not null default 1,  -- 客户类别 (1: 普通客户，2: VIP客户)
+    name        text    not null default '', -- 名称
+    head        text    not null default '', -- 负责人
+    address     text    not null default '', -- 地址
+    email       text    not null default '', -- email
+    birthday    date,                        -- 生日🎂
+    qq          text    not null default '', -- qq
+    phone       text    not null default '', -- 电话
+    notes       text    not null default '',  -- 备注
+    create_time TIMESTAMP not null default now() -- 创建时间
+);
+create index idx_customers_type on customers (ty_pe);
+
+
+-- 类别
 create table cates
 (
     id        serial,
@@ -17,11 +37,11 @@ create table cates
 );
 
 -- 确认需不需要
-create table goods
-(
-    id       serial,
-    goods_no text not null default '' -- 货号
-);
+-- create table goods
+-- (
+--     id       serial,
+--     goods_no text not null default '' -- 货号
+-- );
 
 --
 create table items
@@ -72,13 +92,3 @@ values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
 insert into accounts (name, account, password, department_id)
 values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
 
-create table customers
-(
-    id          serial,
-    customer_no text not null default '', -- 客户编号
-    name        text not null default '', -- 名称
-    address     text not null default '', -- 地址
-    phone       text not null default '', -- 电话
-    notes       text not null default ''  -- 备注
-);
-create unique index uniq_customers_customer_no on customers (customer_no);

@@ -33,6 +33,7 @@ impl CustomerServiceTrait for CustomerService {
 
     async fn get_customers(&self, param: &CustomerSearchParam) -> ERPResult<Vec<CustomerModel>> {
         let sql = param.to_pagination_sql();
+        tracing::info!("get_customers: to_pagination_sql: {:?}", sql);
         let customers = sqlx::query_as::<_, CustomerModel>(&sql)
             .fetch_all(self.db.get_pool())
             .await?;
@@ -42,6 +43,7 @@ impl CustomerServiceTrait for CustomerService {
 
     async fn get_customers_count(&self, param: &CustomerSearchParam) -> ERPResult<i32> {
         let sql = param.to_count_sql();
+        tracing::info!("get_customers: to_count_sql: {:?}", sql);
         let count = sqlx::query_as::<_, (i64,)>(&sql)
             .fetch_one(self.db.get_pool())
             .await?
@@ -51,8 +53,33 @@ impl CustomerServiceTrait for CustomerService {
     }
 
     async fn edit_customer(&self, param: &CustomerEditParam) -> ERPResult<()> {
-        match param.id {
-            Some(id) => {
+        let id = match param.id {
+            Some(id) => id,
+            None => 0,
+        };
+        match id {
+            0 => {
+                sqlx::query!(
+                    r#"
+                    insert into customers (customer_no, ty_pe, name, head, address, 
+                        email, birthday, qq, phone, notes)
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+                    "#,
+                    param.customer_no,
+                    param.ty_pe,
+                    param.name,
+                    param.head,
+                    param.address,
+                    param.email,
+                    param.birthday,
+                    param.qq,
+                    param.phone,
+                    param.notes,
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+            _ => {
                 sqlx::query!(
                     r#"
                     update customers set customer_no=$1, ty_pe=$2, name=$3, 
@@ -74,28 +101,8 @@ impl CustomerServiceTrait for CustomerService {
                 .execute(self.db.get_pool())
                 .await?;
             }
-            None => {
-                sqlx::query!(
-                    r#"
-                    insert into customers (customer_no, ty_pe, name, head, address, 
-                        email, birthday, qq, phone, notes)
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
-                    "#,
-                    param.customer_no,
-                    param.ty_pe,
-                    param.name,
-                    param.head,
-                    param.address,
-                    param.email,
-                    param.birthday,
-                    param.qq,
-                    param.phone,
-                    param.notes,
-                )
-                .execute(self.db.get_pool())
-                .await?;
-            }
-        }
+        };
+
         Ok(())
     }
 

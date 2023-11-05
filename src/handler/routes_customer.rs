@@ -31,7 +31,7 @@ async fn get_customers(
 
 async fn edit_customer(
     State(state): State<CustomerState>,
-    WithRejection(Query(param), _): WithRejection<Query<CustomerEditParam>, ERPError>,
+    WithRejection(Json(param), _): WithRejection<Json<CustomerEditParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     state.customer_service.edit_customer(&param).await?;
     Ok(APIEmptyResponse::new())

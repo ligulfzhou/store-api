@@ -66,8 +66,10 @@ impl CustomerSearchParam {
 
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+
         sql.push_str(&format!(
-            " order by id desc limit {page} offset {page_size};"
+            " order by id desc limit {page_size} offset {offset};"
         ));
 
         sql

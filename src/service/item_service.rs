@@ -126,7 +126,57 @@ impl ItemServiceTrait for ItemService {
     }
 
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()> {
-        todo!()
+        match params.id {
+            0 => {
+                // 新增item
+                sqlx::query!(
+                    r#"
+                    insert into items (brand, cates1, cates2, goods_no, color, 
+                        name, size, unit, barcode, sell_price, buy_price)
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+                    "#,
+                    params.brand,
+                    params.cates1,
+                    params.cates2,
+                    params.goods_no,
+                    params.color,
+                    params.name,
+                    params.size,
+                    params.unit,
+                    params.barcode,
+                    params.sell_price,
+                    params.buy_price
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+            _ => {
+                // 修改item
+                sqlx::query!(
+                    r#"
+                    update items set brand=$1, cates1=$2, cates2=$3, 
+                        goods_no=$4, color=$5, name=$6, size=$7, 
+                        unit=$8, barcode=$9, sell_price=$10, buy_price=$11
+                    where id=$12"#,
+                    params.brand,
+                    params.cates1,
+                    params.cates2,
+                    params.goods_no,
+                    params.color,
+                    params.name,
+                    params.size,
+                    params.unit,
+                    params.barcode,
+                    params.sell_price,
+                    params.buy_price,
+                    params.id,
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+        };
+
+        Ok(())
     }
 
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()> {

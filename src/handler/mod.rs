@@ -12,14 +12,14 @@ use axum::Router;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
-pub mod routes_account;
-pub mod routes_cates;
-pub mod routes_customer;
-pub mod routes_excel;
-pub mod routes_items;
-pub mod routes_login;
-pub mod routes_static;
-pub mod routes_upload;
+mod routes_account;
+mod routes_cates;
+mod routes_customer;
+mod routes_excel;
+mod routes_items;
+mod routes_login;
+mod routes_static;
+mod routes_upload;
 
 pub trait ListParamToSQLTrait {
     fn to_pagination_sql(&self) -> String;
@@ -68,7 +68,7 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                 )),
         )
         .merge(routes_items::routes().with_state(ItemState::new(&db)))
-        // .merge(routes_upload::routes(app_state.clone()))
+        .merge(routes_upload::routes())
         // .merge(routes_account::routes(app_state.clone()))
         // .merge(routes_customer::routes(app_state.clone()))
         // .merge(routes_excel::routes(app_state.clone()))

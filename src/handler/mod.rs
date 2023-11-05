@@ -53,10 +53,12 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
 
     let routes_all = Router::new()
         .merge(
-            routes_cates::routes().with_state(CateState::new(&db)), // .layer(axum::middleware::from_fn_with_state(
-                                                                    //     AccountState::new(&db),
-                                                                    //     auth,
-                                                                    // )),
+            routes_cates::routes()
+                .with_state(CateState::new(&db))
+                .layer(axum::middleware::from_fn_with_state(
+                    AccountState::new(&db),
+                    auth,
+                )),
         )
         .merge(routes_customer::routes().with_state(CustomerState::new(&db)))
         .merge(

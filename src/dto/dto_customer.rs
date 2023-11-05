@@ -1,5 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::model::customer::CustomerModel;
+use chrono::NaiveDate;
 use std::ops::Deref;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -110,8 +111,13 @@ pub struct CustomerEditParam {
     pub head: String,
     pub address: String,
     pub email: String,
-    pub birthday: String,
+    pub birthday: Option<NaiveDate>,
     pub qq: String,
     pub phone: String,
     pub notes: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CustomerDeleteParam {
+    pub id: i32,
 }

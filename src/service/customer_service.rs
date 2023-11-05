@@ -1,5 +1,5 @@
 use crate::config::database::{Database, DatabaseTrait};
-use crate::dto::dto_customer::CustomerSearchParam;
+use crate::dto::dto_customer::{CustomerEditParam, CustomerSearchParam};
 use crate::model::customer::CustomerModel;
 use crate::ERPResult;
 use async_trait::async_trait;
@@ -19,6 +19,10 @@ pub trait CustomerServiceTrait {
     async fn get_customers(&self, param: &CustomerSearchParam) -> ERPResult<Vec<CustomerModel>>;
 
     async fn get_customers_count(&self, param: &CustomerSearchParam) -> ERPResult<i32>;
+
+    async fn edit_customer(&self, param: &CustomerEditParam) -> ERPResult<()>;
+
+    async fn delete_customer(&self, id: i32) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -44,5 +48,61 @@ impl CustomerServiceTrait for CustomerService {
             .0 as i32;
 
         Ok(count)
+    }
+
+    async fn edit_customer(&self, param: &CustomerEditParam) -> ERPResult<()> {
+        match param.id {
+            Some(id) => {
+                sqlx::query!(
+                    r#"
+                    update customers set customer_no=$1, ty_pe=$2, name=$3, 
+                        head=$4, address=$5, email=$6, birthday=$7, 
+                        qq=$8, phone=$9, notes=$10 
+                    where id=$11"#,
+                    param.customer_no,
+                    param.ty_pe,
+                    param.name,
+                    param.head,
+                    param.address,
+                    param.email,
+                    param.birthday,
+                    param.qq,
+                    param.phone,
+                    param.notes,
+                    param.id,
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+            None => {
+                sqlx::query!(
+                    r#"
+                    insert into customers (customer_no, ty_pe, name, head, address, 
+                        email, birthday, qq, phone, notes)
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+                    "#,
+                    param.customer_no,
+                    param.ty_pe,
+                    param.name,
+                    param.head,
+                    param.address,
+                    param.email,
+                    param.birthday,
+                    param.qq,
+                    param.phone,
+                    param.notes,
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn delete_customer(&self, id: i32) -> ERPResult<()> {
+        sqlx::query!("delete from customers where id = $1", id)
+            .execute(self.db.get_pool())
+            .await?;
+        Ok(())
     }
 }

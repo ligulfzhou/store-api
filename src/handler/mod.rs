@@ -2,6 +2,7 @@ use crate::config::database::Database;
 use crate::middleware::auth::auth;
 use crate::state::account_state::AccountState;
 use crate::state::cate_state::CateState;
+use crate::state::customer_state::CustomerState;
 use axum::extract::DefaultBodyLimit;
 use axum::http::{header, Method};
 use axum::response::Response;
@@ -55,6 +56,15 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                                                                     //     AccountState::new(&db),
                                                                     //     auth,
                                                                     // )),
+        )
+        .merge(routes_customer::routes().with_state(CustomerState::new(&db)))
+        .merge(
+            routes_account::routes()
+                .with_state(AccountState::new(&db))
+                .layer(axum::middleware::from_fn_with_state(
+                    AccountState::new(&db),
+                    auth,
+                )),
         )
         // .merge(routes_upload::routes(app_state.clone()))
         // .merge(routes_account::routes(app_state.clone()))

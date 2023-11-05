@@ -34,6 +34,7 @@ pub struct CustomerSearchParam {
     pub ty_pe: i32,
     pub name: String,
     pub phone: String,
+    pub head: String,
     pub create_time_st: String,
     pub create_time_ed: String,
 }
@@ -46,10 +47,13 @@ impl CustomerSearchParam {
             where_clauses.push(format!(" ty_pe = {} ", self.ty_pe));
         }
         if !self.name.is_empty() {
-            where_clauses.push(format!(" name like '%{:?}%' ", self.name.deref()));
+            where_clauses.push(format!(" name like '%{}%' ", self.name.deref()));
+        }
+        if !self.head.is_empty() {
+            where_clauses.push(format!(" head like '%{}%'", self.head.deref()));
         }
         if !self.phone.is_empty() {
-            where_clauses.push(format!(" phone like '%{:?}%' ", self.phone.deref()));
+            where_clauses.push(format!(" phone like '%{}%' ", self.phone.deref()));
         }
 
         if !self.create_time_st.is_empty() && !self.create_time_ed.is_empty() {
@@ -82,10 +86,13 @@ impl CustomerSearchParam {
             where_clauses.push(format!(" ty_pe = {} ", self.ty_pe));
         }
         if !self.name.is_empty() {
-            where_clauses.push(format!(" name like '%{:?}%' ", self.name.deref()));
+            where_clauses.push(format!(" name like '%{}%' ", self.name.deref()));
+        }
+        if !self.head.is_empty() {
+            where_clauses.push(format!(" head like '%{}%'", self.head.deref()));
         }
         if !self.phone.is_empty() {
-            where_clauses.push(format!(" phone like '%{:?}%' ", self.phone.deref()));
+            where_clauses.push(format!(" phone like '%{}%' ", self.phone.deref()));
         }
 
         if !self.create_time_st.is_empty() && !self.create_time_ed.is_empty() {

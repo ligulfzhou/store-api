@@ -1,20 +1,22 @@
 use crate::{ERPError, ERPResult};
+use chrono::NaiveDateTime;
 use sqlx::{Pool, Postgres, QueryBuilder};
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct ItemsModel {
     pub id: i32,
-    pub brand: String,    // 品牌
-    pub cates1: String,   // 产品大类
-    pub cates2: String,   // 产品小类
-    pub goods_no: String, // 货号
-    pub color: String,    // 颜色
-    pub name: String,     // 产品名称
-    pub size: String,     // 规格
-    pub unit: String,     // 单位
-    pub barcode: String,  // 条码
-    pub sell_price: i32,  // 标准售价
-    pub buy_price: i32,   // 进货价
+    pub brand: String,              // 品牌
+    pub cates1: String,             // 产品大类
+    pub cates2: String,             // 产品小类
+    pub goods_no: String,           // 货号
+    pub color: String,              // 颜色
+    pub name: String,               // 产品名称
+    pub size: String,               // 规格
+    pub unit: String,               // 单位
+    pub barcode: String,            // 条码
+    pub sell_price: i32,            // 标准售价
+    pub buy_price: i32,             // 进货价
+    pub create_time: NaiveDateTime, // 创建时间
 }
 
 impl ItemsModel {

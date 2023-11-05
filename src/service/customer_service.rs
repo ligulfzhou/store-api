@@ -3,8 +3,6 @@ use crate::dto::dto_customer::{CustomerEditParam, CustomerSearchParam};
 use crate::model::customer::CustomerModel;
 use crate::ERPResult;
 use async_trait::async_trait;
-use sqlx::{Postgres, QueryBuilder};
-use std::ops::Deref;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -53,10 +51,7 @@ impl CustomerServiceTrait for CustomerService {
     }
 
     async fn edit_customer(&self, param: &CustomerEditParam) -> ERPResult<()> {
-        let id = match param.id {
-            Some(id) => id,
-            None => 0,
-        };
+        let id = param.id.unwrap_or(0);
         match id {
             0 => {
                 sqlx::query!(

@@ -11,7 +11,7 @@
 -- 客户
 create table customers
 (
-    id          serial,
+    id          serial PRIMARY KEY,
     customer_no text      not null default '',   -- 客户编号
     ty_pe       integer   not null default 1,    -- 客户类别 (1: 普通客户，2: VIP客户)
     name        text      not null default '',   -- 名称
@@ -30,7 +30,7 @@ create index idx_customers_type on customers (ty_pe);
 -- 类别
 create table cates
 (
-    id        serial,
+    id        serial PRIMARY KEY,
     index     integer not null default 0,
     name      text    not null default '', -- 类名
     sub_cates text[] not null default '{}' -- 子类
@@ -46,7 +46,7 @@ create table cates
 --
 create table items
 (
-    id          serial,
+    id          serial PRIMARY KEY,
     brand       text      not null default '',   -- 品牌
     cates1      text      not null default '',   -- 大类ID
     cates2      text      not null default '',   -- 小类ID
@@ -66,7 +66,7 @@ create table items
 -- 部门
 create table departments
 (
-    id    serial,
+    id    serial PRIMARY KEY,
     name  text not null default '',       -- 部门名称
     steps integer[] not null default '{}' -- 流程位续
 );
@@ -79,7 +79,7 @@ values ('仓库部', '{2}');
 -- 账号
 create table accounts
 (
-    id            serial,
+    id            serial PRIMARY KEY,
     name          text    not null default '',
     account       text    not null default '',
     password      text    not null default '',
@@ -91,4 +91,3 @@ insert into accounts (name, account, password, department_id)
 values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
 insert into accounts (name, account, password, department_id)
 values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
-

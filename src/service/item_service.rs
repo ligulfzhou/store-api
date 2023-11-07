@@ -131,9 +131,11 @@ impl ItemServiceTrait for ItemService {
                 // 新增item
                 sqlx::query!(
                     r#"
-                    insert into items (brand, cates1, cates2, goods_no, color, 
-                        name, size, unit, barcode, sell_price, buy_price)
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+                    insert into items (brand, cates1, cates2, goods_no, color, name, size, unit,
+                     barcode, sell_price, buy_price, images, supplier, material, pcs, weight, 
+                     english_name, description, notes )
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 
+                     $17, $18, $19);
                     "#,
                     params.brand,
                     params.cates1,
@@ -145,7 +147,15 @@ impl ItemServiceTrait for ItemService {
                     params.unit,
                     params.barcode,
                     params.sell_price,
-                    params.buy_price
+                    params.buy_price,
+                    &params.images,
+                    params.supplier,
+                    params.material,
+                    params.pcs,
+                    params.weight,
+                    params.english_name,
+                    params.description,
+                    params.notes,
                 )
                 .execute(self.db.get_pool())
                 .await?;
@@ -154,10 +164,11 @@ impl ItemServiceTrait for ItemService {
                 // 修改item
                 sqlx::query!(
                     r#"
-                    update items set brand=$1, cates1=$2, cates2=$3, 
-                        goods_no=$4, color=$5, name=$6, size=$7, 
-                        unit=$8, barcode=$9, sell_price=$10, buy_price=$11
-                    where id=$12"#,
+                    update items set brand=$1, cates1=$2, cates2=$3, goods_no=$4, color=$5, name=$6,
+                     size=$7, unit=$8, barcode=$9, sell_price=$10, buy_price=$11, images=$12, 
+                     supplier=$13, material=$14, pcs=$15, weight=$16, english_name=$17, description=$18, 
+                     notes=$19
+                    where id=$20"#,
                     params.brand,
                     params.cates1,
                     params.cates2,
@@ -169,6 +180,14 @@ impl ItemServiceTrait for ItemService {
                     params.barcode,
                     params.sell_price,
                     params.buy_price,
+                    &params.images,
+                    params.supplier,
+                    params.material,
+                    params.pcs,
+                    params.weight,
+                    params.english_name,
+                    params.description,
+                    params.notes,
                     params.id,
                 )
                 .execute(self.db.get_pool())

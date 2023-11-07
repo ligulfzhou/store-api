@@ -46,19 +46,27 @@ create table cates
 --
 create table items
 (
-    id          serial PRIMARY KEY,
-    brand       text      not null default '',   -- 品牌
-    cates1      text      not null default '',   -- 大类ID
-    cates2      text      not null default '',   -- 小类ID
-    goods_no    text      not null default '',   -- 货号
-    color       text      not null default '',   -- 颜色
-    name        text      not null default '',   -- 产品名称
-    size        text      not null default '',   -- 规格
-    unit        text      not null default '',   -- 单位
-    barcode     text      not null default '',   -- 条码
-    sell_price  integer   not null default 0,    -- 标准售价
-    buy_price   integer   not null default 0,    -- 进货价
-    create_time TIMESTAMP not null default now() -- 创建时间
+    id           serial PRIMARY KEY,
+    images       text[] not null default '{}',           -- 商品图片
+    cates1       text             not null default '',   -- 大类ID
+    cates2       text             not null default '',   -- 小类ID
+    brand        text             not null default '',   -- 品牌
+    supplier     text             not null default '',   -- 供应商
+    material     text             not null default '',   -- 材质
+    pcs          integer          not null default 0,    -- pcs件数
+    weight       double precision not null default 0.0,  -- 重量
+    goods_no     text             not null default '',   -- 货号
+    color        text             not null default '',   -- 颜色
+    name         text             not null default '',   -- 产品名称
+    english_name text             not null default '',   -- 英文名
+    size         text             not null default '',   -- 规格
+    unit         text             not null default '',   -- 单位
+    barcode      text             not null default '',   -- 条码
+    description  text             not null default '',   -- 描述
+    notes        text             not null default '',   -- 备注
+    sell_price   integer          not null default 0,    -- 标准售价
+    buy_price    integer          not null default 0,    -- 进货价
+    create_time  TIMESTAMP        not null default now() -- 创建时间
 );
 
 --     code      text    not null default '', -- 货号

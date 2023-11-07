@@ -36,6 +36,9 @@ create table cates
     sub_cates text[] not null default '{}' -- 子类
 );
 
+-- todo: for test...
+insert into cates (index, name, sub_cates) values (1, '大类1', array ['小类1', '小类2']);
+
 -- 确认需不需要
 -- create table goods
 -- (

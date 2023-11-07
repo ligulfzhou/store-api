@@ -56,7 +56,7 @@ pub struct EditParams {
     pub buy_price: i32,       // 进货价
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct DeleteParams {
     pub id: i32,
 }

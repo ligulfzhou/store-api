@@ -23,6 +23,8 @@ pub trait ItemServiceTrait {
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
 
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
+
+    async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -199,6 +201,35 @@ impl ItemServiceTrait for ItemService {
     }
 
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()> {
-        todo!()
+        sqlx::query!("delete from items where id = $1", params.id)
+            .execute(self.db.get_pool())
+            .await?;
+
+        Ok(())
+    }
+
+    // todo
+    async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()> {
+        let mut query_builder: QueryBuilder<Postgres> =
+                    QueryBuilder::new("insert into items (cates1, cates2, goods_no, color, name, size, unit, barcode, sell_price, buy_price ) ");
+
+        query_builder.push_values(rows, |mut b, item| {
+            b.push_bind(item.cates1.clone())
+                .push_bind(item.cates2.clone())
+                .push_bind(item.goods_no.clone())
+                .push_bind(item.color.clone())
+                .push_bind(item.name.clone())
+                .push_bind(item.size.clone())
+                .push_bind(item.unit.clone())
+                .push_bind(item.barcode.clone())
+                .push_bind(item.sell_price)
+                .push_bind(item.buy_price);
+        });
+
+        query_builder.push(" returning id;");
+
+        query_builder.build().execute(self.db.get_pool()).await?;
+
+        Ok(())
     }
 }

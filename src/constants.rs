@@ -4,11 +4,11 @@ pub const DEFAULT_PAGE_SIZE: i32 = 50;
 pub const DONE_INDEX: i32 = 2;
 pub const EXCEPTION_OR_NOTES_INDEX: i32 = 1;
 
-// pub const STORAGE_FILE_PATH: &str = "/home/debian/data/file";
-pub const STORAGE_FILE_PATH: &str = "/Users/ligangzhou/data/file";
+// pub const STORAGE_FILE_PATH: &str = "/home/debian/data/erp";
+pub const STORAGE_FILE_PATH: &str = "/Users/ligangzhou/data/erp";
 
-// pub const STORAGE_URL_PREFIX: &str = "https://erp.ligulfzhou.com/file";
-pub const STORAGE_URL_PREFIX: &str = "http://localhost/file";
+// pub const STORAGE_URL_PREFIX: &str = "https://store-erp.ligulfzhou.com/erp";
+pub const STORAGE_URL_PREFIX: &str = "http://localhost/erp";
 
 lazy_static! {
     pub static ref STEP_TO_DEPARTMENT: HashMap<i32, &'static str> =

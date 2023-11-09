@@ -31,7 +31,8 @@ async fn upload_image(mut multipart: Multipart) -> ERPResult<APIDataResponse<Ima
                 now.minute(),
                 now.second()
             );
-            let dir_path = format!("{}images/{}", STORAGE_FILE_PATH, ymd);
+            // let file_suffix =
+            let dir_path = format!("{}/images/{}", STORAGE_FILE_PATH, ymd);
             tracing::info!("dir_path: {}", dir_path);
             let file_name = format!("{}.png", ymdhms);
             tracing::info!("filename: {}", file_name);

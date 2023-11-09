@@ -74,8 +74,7 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
         // .merge(routes_account::routes(app_state.clone()))
         // .merge(routes_customer::routes(app_state.clone()))
         .merge(routes_excel::routes().with_state(ItemState::new(&db)))
-        // .merge(routes_login::routes(app_state.clone()))
-        // .merge(routes_items::routes(app_state.clone()))
+        .merge(routes_login::routes().with_state(AccountState::new(&db)))
         // todo: for test
         .layer(axum::middleware::map_response(main_response_mapper))
         .fallback_service(routes_static::routes())

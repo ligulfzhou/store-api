@@ -53,11 +53,13 @@ create table accounts
     id       serial PRIMARY KEY,
     name     text not null default '',
     account  text not null default '',
-    password text not null default ''
+    password text not null default '',
+    create_time TIMESTAMP not null default now() -- 创建时间
 );
 insert into accounts (name, account, password)
 values ('测试账号', 'test', 'test');
 
+-- 订单
 create table orders
 (
     id          serial PRIMARY KEY,
@@ -68,6 +70,7 @@ create table orders
 );
 create index idx_orders_order_no on orders (order_no);
 
+-- 订单商品
 create table order_items
 (
     id      serial PRIMARY KEY,

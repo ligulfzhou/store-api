@@ -52,57 +52,32 @@ create table items
 (
     id           serial PRIMARY KEY,
     images       text[] not null default '{}',           -- 商品图片
-    cates1       text             not null default '',   -- 大类ID
-    cates2       text             not null default '',   -- 小类ID
-    brand        text             not null default '',   -- 品牌
-    supplier     text             not null default '',   -- 供应商
-    material     text             not null default '',   -- 材质
-    pcs          integer          not null default 0,    -- pcs件数
-    weight       double precision not null default 0.0,  -- 重量
-    goods_no     text             not null default '',   -- 货号
-    color        text             not null default '',   -- 颜色
-    name         text             not null default '',   -- 产品名称
-    english_name text             not null default '',   -- 英文名
+    name         text             not null default '',   -- 名称
     size         text             not null default '',   -- 规格
+    color        text             not null default '',   -- 颜色
+    cate1_id     integer          not null default 0,    -- 大类ID
+    cate2_id     integer          not null default 0,    -- 小类ID
     unit         text             not null default '',   -- 单位
-    barcode      text             not null default '',   -- 条码
-    description  text             not null default '',   -- 描述
+    price        integer          not null default 0,    -- 标准售价
+    cost         integer          not null default 0,    -- 成本
     notes        text             not null default '',   -- 备注
-    sell_price   integer          not null default 0,    -- 标准售价
-    buy_price    integer          not null default 0,    -- 进货价
+    number       text             not null default '',   -- 货号
+    barcode      text             not null default '',   -- 条码
     create_time  TIMESTAMP        not null default now() -- 创建时间
 );
 
 --     code      text    not null default '', -- 货号
 
--- 部门
-create table departments
-(
-    id    serial PRIMARY KEY,
-    name  text not null default '',       -- 部门名称
-    steps integer[] not null default '{}' -- 流程位续
-);
-
-insert into departments (name, steps)
-values ('业务部', '{1}');
-insert into departments (name, steps)
-values ('仓库部', '{2}');
-
 -- 账号
 create table accounts
 (
-    id            serial PRIMARY KEY,
-    name          text    not null default '',
-    account       text    not null default '',
-    password      text    not null default '',
-    department_id integer not null default 0
+    id       serial PRIMARY KEY,
+    name     text not null default '',
+    account  text not null default '',
+    password text not null default ''
 );
-insert into accounts (name, account, password, department_id)
-values ('业务test', 'test', 'test', 1);
-insert into accounts (name, account, password, department_id)
-values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
-insert into accounts (name, account, password, department_id)
-values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
+insert into accounts (name, account, password)
+values ('测试账号', 'test', 'test');
 
 
 create table orders
@@ -117,11 +92,11 @@ create index idx_orders_order_no on orders (order_no);
 
 create table order_items
 (
-    id          serial PRIMARY KEY,
-    index integer not null default 0,
+    id      serial PRIMARY KEY,
+    index   integer not null default 0,
     item_id integer not null default 0,
-    count integer not null default 0,
-    price integer not null default 0
+    count   integer not null default 0,
+    price   integer not null default 0
 )
 
 

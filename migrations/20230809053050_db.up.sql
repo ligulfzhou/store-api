@@ -37,7 +37,8 @@ create table cates
 );
 
 -- todo: for test...
-insert into cates (index, name, sub_cates) values (1, '大类1', array ['小类1', '小类2']);
+insert into cates (index, name, sub_cates)
+values (1, '大类1', array['小类1', '小类2']);
 
 -- 确认需不需要
 -- create table goods
@@ -102,3 +103,25 @@ insert into accounts (name, account, password, department_id)
 values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
 insert into accounts (name, account, password, department_id)
 values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
+
+
+create table orders
+(
+    id          serial PRIMARY KEY,
+    account_id  integer   not null default 0,    -- 操作人
+    customer_id integer   not null default 0,    --
+    order_no    text      not null default '',   --
+    create_time TIMESTAMP not null default now() -- 创建时间
+);
+create index idx_orders_order_no on orders (order_no);
+--
+-- create table order_items
+-- (
+--     id          serial PRIMARY KEY,
+--     index integer not null default 0,
+--     item_id integer not null default 0,
+--     count integer not null default 0,
+--     price integer not null default 0,
+--
+-- )
+--

@@ -86,6 +86,6 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
 async fn main_response_mapper(res: Response) -> Response {
     tracing::info!("->> {:<12} - main_response_mapper", "res_mapper");
     tracing::info!("{:?}", res.headers());
-    // tokio::time::sleep(std::time::Duration::new(0, 300)).await;
+    // tokio::time::sleep(std::time::Duration::new(2, 0)).await;
     res
 }

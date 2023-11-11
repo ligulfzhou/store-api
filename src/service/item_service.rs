@@ -211,19 +211,21 @@ impl ItemServiceTrait for ItemService {
     // todo
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()> {
         let mut query_builder: QueryBuilder<Postgres> =
-                    QueryBuilder::new("insert into items (cates1, cates2, goods_no, color, name, size, unit, barcode, sell_price, buy_price ) ");
+                    QueryBuilder::new("insert into items (images, name, size, color, cate1_id, cate2_id, unit, price, cost, notes, number, barcode) ");
 
         query_builder.push_values(rows, |mut b, item| {
-            b.push_bind(item.cates1.clone())
-                .push_bind(item.cates2.clone())
-                .push_bind(item.goods_no.clone())
-                .push_bind(item.color.clone())
+            b.push_bind(item.images.clone())
                 .push_bind(item.name.clone())
                 .push_bind(item.size.clone())
+                .push_bind(item.color.clone())
+                .push_bind(item.cate1_id)
+                .push_bind(item.cate2_id)
                 .push_bind(item.unit.clone())
-                .push_bind(item.barcode.clone())
-                .push_bind(item.sell_price)
-                .push_bind(item.buy_price);
+                .push_bind(item.price)
+                .push_bind(item.cost)
+                .push_bind(item.notes.clone())
+                .push_bind(item.number.clone())
+                .push_bind(item.barcode.clone());
         });
 
         query_builder.push(" returning id;");

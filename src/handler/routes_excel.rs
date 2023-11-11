@@ -150,26 +150,21 @@ async fn import_excel(
             .into_iter()
             .map(|item| ItemsModel {
                 id: 0,
-                brand: item.brand,
-                supplier: "".to_string(),
-                material: "".to_string(),
-                pcs: 0,
-                cates1: item.cates1,
-                cates2: item.cates2,
-                goods_no: item.goods_no,
                 color: item.color,
+                // todo
+                cate1_id: 0,
                 name: item.name,
-                english_name: "".to_string(),
                 size: item.size,
                 unit: item.unit,
+                // todo
+                price: 0,
                 barcode: item.barcode,
-                description: "".to_string(),
                 notes: "".to_string(),
-                sell_price: item.sell_price,
-                buy_price: item.buy_price,
                 images: vec![],
-                weight: 0.0,
                 create_time: Default::default(),
+                cate2_id: 0,
+                cost: 0,
+                number: "".to_string(),
             })
             .collect::<Vec<ItemsModel>>();
 

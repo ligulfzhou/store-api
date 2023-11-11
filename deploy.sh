@@ -1,8 +1,9 @@
-ssh hosthatch << EOFHOSTHATCH
 ssh ovh << EOFOVH
 cd /home/debian/erp-api
 git pull origin main
 /home/debian/.cargo/bin/cargo build -r
-/usr/bin/svc restart erp-9100
+/usr/bin/svc restart lkx:lkx-9200
+/usr/bin/svc restart lkx:lkx-9201
+/usr/bin/svc restart lkx:lkx-9202
+/usr/bin/svc restart lkx:lkx-9203
 EOFOVH
-EOFHOSTHATCH

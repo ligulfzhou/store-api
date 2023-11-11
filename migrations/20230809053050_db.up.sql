@@ -114,14 +114,15 @@ create table orders
     create_time TIMESTAMP not null default now() -- 创建时间
 );
 create index idx_orders_order_no on orders (order_no);
---
--- create table order_items
--- (
---     id          serial PRIMARY KEY,
---     index integer not null default 0,
---     item_id integer not null default 0,
---     count integer not null default 0,
---     price integer not null default 0,
---
--- )
---
+
+create table order_items
+(
+    id          serial PRIMARY KEY,
+    index integer not null default 0,
+    item_id integer not null default 0,
+    count integer not null default 0,
+    price integer not null default 0
+)
+
+
+

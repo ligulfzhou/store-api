@@ -1,6 +1,6 @@
 use crate::config::database::DatabaseTrait;
 use crate::dto::dto_account::AccountDto;
-use crate::model::account::{AccountModel, DepartmentModel};
+use crate::model::account::AccountModel;
 use crate::state::account_state::AccountState;
 use crate::ERPError;
 use axum::{extract::State, http::Request, middleware::Next, response::IntoResponse};
@@ -41,13 +41,13 @@ pub async fn auth<B>(
     }
 
     let account = account.unwrap();
-    let department = sqlx::query_as::<_, DepartmentModel>(&format!(
-        "select * from departments where id={}",
-        account.department_id
-    ))
-    .fetch_one(state.account_repo.db.get_pool())
-    .await
-    .map_err(ERPError::DBError)?;
+    // let department = sqlx::query_as::<_, DepartmentModel>(&format!(
+    //     "select * from departments where id={}",
+    //     account.department_id
+    // ))
+    // .fetch_one(state.account_repo.db.get_pool())
+    // .await
+    // .map_err(ERPError::DBError)?;
 
     let account_dto = AccountDto::from(account);
 

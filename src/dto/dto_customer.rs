@@ -1,27 +1,35 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::model::customer::CustomerModel;
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use std::ops::Deref;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CustomerDto {
     pub id: i32,
-    pub customer_no: String,
+    pub ty_pe: i32,
     pub name: String,
+    pub head: String,
     pub address: String,
+    pub email: String,
+    pub birthday: Option<NaiveDate>,
     pub phone: String,
     pub notes: String,
+    pub create_time: NaiveDateTime,
 }
 
 impl CustomerDto {
     pub fn from(customer: CustomerModel) -> CustomerDto {
         Self {
             id: customer.id,
-            customer_no: customer.customer_no,
+            ty_pe: customer.ty_pe,
             name: customer.name,
+            head: customer.head,
             address: customer.address,
+            email: customer.email,
+            birthday: customer.birthday,
             phone: customer.phone,
             notes: customer.notes,
+            create_time: customer.create_time,
         }
     }
 }

@@ -8,7 +8,6 @@ use std::collections::HashMap;
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct OrderDto {
     pub id: i32,
-    pub customer_no: String,
     pub order_no: String,
     pub order_date: NaiveDate,
     pub delivery_date: Option<NaiveDate>,
@@ -20,7 +19,6 @@ impl OrderDto {
     pub fn from(order: OrderModel, customer: CustomerModel) -> OrderDto {
         Self {
             id: order.id,
-            customer_no: customer.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date,
@@ -32,7 +30,6 @@ impl OrderDto {
     pub fn from_only(order: OrderModel) -> OrderDto {
         Self {
             id: order.id,
-            customer_no: order.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date,
@@ -85,7 +82,6 @@ pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
 #[derive(Debug, Serialize)]
 pub struct OrderWithStepsDto {
     pub id: i32,
-    pub customer_no: String,
     pub order_no: String,
     pub order_date: NaiveDate,
     pub delivery_date: Option<NaiveDate>,
@@ -98,7 +94,6 @@ impl OrderWithStepsDto {
     pub fn from_order_dto_and_steps(order: OrderDto, steps: StepIndexCount) -> OrderWithStepsDto {
         Self {
             id: order.id,
-            customer_no: order.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date,

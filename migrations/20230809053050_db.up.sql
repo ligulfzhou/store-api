@@ -1,72 +1,51 @@
--- 单位管理
--- create table cates
--- (
---     id          serial,
---     index       integer not null default 0,
---     name        text    not null default '', -- 类名
---     cate_type   integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
---     parent_name text    not null default ''  -- 父类
--- );
+-- 类别管理
+create table cates
+(
+    id        serial,
+    index     integer not null default 0,  -- 序号
+    name      text    not null default '', -- 类名
+    cate_type integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
+    parent_id integer not null default 0   -- 父类
+);
 
 -- 客户
 create table customers
 (
     id          serial PRIMARY KEY,
-    customer_no text      not null default '',   -- 客户编号
-    ty_pe       integer   not null default 1,    -- 客户类别 (1: 普通客户，2: VIP客户)
     name        text      not null default '',   -- 名称
     head        text      not null default '',   -- 负责人
-    address     text      not null default '',   -- 地址
-    email       text      not null default '',   -- email
-    birthday    date,                            -- 生日🎂
-    qq          text      not null default '',   -- qq
     phone       text      not null default '',   -- 电话
+    birthday    date,                            -- 生日🎂
+    email       text      not null default '',   -- email
+    ty_pe       integer   not null default 1,    -- 客户类别 (1: 普通客户，2: VIP客户)
+    address     text      not null default '',   -- 地址
     notes       text      not null default '',   -- 备注
     create_time TIMESTAMP not null default now() -- 创建时间
 );
+create unique index uniq_customers_name on customers (name);
 create index idx_customers_type on customers (ty_pe);
 
-
--- 类别
-create table cates
-(
-    id        serial PRIMARY KEY,
-    index     integer not null default 0,
-    name      text    not null default '', -- 类名
-    sub_cates text[] not null default '{}' -- 子类
-);
-
--- todo: for test...
-insert into cates (index, name, sub_cates)
-values (1, '大类1', array['小类1', '小类2']);
-
--- 确认需不需要
--- create table goods
--- (
---     id       serial,
---     goods_no text not null default '' -- 货号
--- );
-
---
+-- 产品
 create table items
 (
-    id           serial PRIMARY KEY,
-    images       text[] not null default '{}',           -- 商品图片
-    name         text             not null default '',   -- 名称
-    size         text             not null default '',   -- 规格
-    color        text             not null default '',   -- 颜色
-    cate1_id     integer          not null default 0,    -- 大类ID
-    cate2_id     integer          not null default 0,    -- 小类ID
-    unit         text             not null default '',   -- 单位
-    price        integer          not null default 0,    -- 标准售价
-    cost         integer          not null default 0,    -- 成本
-    notes        text             not null default '',   -- 备注
-    number       text             not null default '',   -- 货号
-    barcode      text             not null default '',   -- 条码
-    create_time  TIMESTAMP        not null default now() -- 创建时间
+    id          serial PRIMARY KEY,
+    images      text[] not null default '{}',    -- 商品图片
+    name        text      not null default '',   -- 名称
+    size        text      not null default '',   -- 规格
+    color       text      not null default '',   -- 颜色
+    cate1_id    integer   not null default 0,    -- 大类ID
+    cate2_id    integer   not null default 0,    -- 小类ID
+    unit        text      not null default '',   -- 单位
+    price       integer   not null default 0,    -- 标准售价
+    cost        integer   not null default 0,    -- 成本
+    notes       text      not null default '',   -- 备注
+    number      text      not null default '',   -- 编号
+    barcode     text      not null default '',   -- 条码
+    create_time TIMESTAMP not null default now() -- 创建时间
 );
-
---     code      text    not null default '', -- 货号
+create index idx_items_number on items (number);
+create index idx_items_barcode on items (barcode);
+create index idx_tems_cates on items (cate1_id, cate2_id);
 
 -- 账号
 create table accounts
@@ -78,7 +57,6 @@ create table accounts
 );
 insert into accounts (name, account, password)
 values ('测试账号', 'test', 'test');
-
 
 create table orders
 (

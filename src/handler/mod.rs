@@ -33,13 +33,10 @@ pub trait CreateOrUpdateParamToSQLTrait {
 pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
     let cors = CorsLayer::new()
         .allow_origin([
-            "https://erp.ligulfzhou.com".parse().unwrap(),
-            "https://lien.ligulfzhou.com".parse().unwrap(),
+            "https://store-web-five.vercel.app".parse().unwrap(),
+            "https://store.ligulfzhou.com".parse().unwrap(),
             "http://127.0.0.1:3010".parse().unwrap(),
             "http://localhost:3010".parse().unwrap(),
-            "http://127.0.0.1:3000".parse().unwrap(),
-            "http://localhost:3000".parse().unwrap(),
-            "https://egret-erp.vercel.app".parse().unwrap(),
         ])
         .allow_methods(vec![Method::GET, Method::POST])
         .allow_credentials(true)

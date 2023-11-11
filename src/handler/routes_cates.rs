@@ -1,18 +1,18 @@
-use crate::dto::dto_cates::CateDto;
+use crate::dto::dto_cates::{CateDto, EditParams};
 use crate::response::api_response::APIListResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::state::cate_state::CateState;
-use crate::ERPResult;
+use crate::{ERPError, ERPResult};
 use axum::extract::State;
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Json, Router};
+use axum_extra::extract::WithRejection;
 
 pub fn routes() -> Router<CateState> {
     Router::new()
         .route("/api/cates", get(api_cates_list))
-        .route("/api/save/cates", post(api_cates_list))
-        .route("/api/update/cates", post(api_cates_list))
-        .route("/api/extract/cates", post(api_cates_list))
+        .route("/api/edit/cates", post(api_edit_cate))
+        .route("/api/delete/cates", post(api_cates_list))
 }
 
 async fn api_cates_list(State(state): State<CateState>) -> ERPResult<APIListResponse<CateDto>> {
@@ -21,16 +21,11 @@ async fn api_cates_list(State(state): State<CateState>) -> ERPResult<APIListResp
     Ok(APIListResponse::new(cates_dto, count))
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CateParam {
-    pub id: i32,             // SERIAL
-    pub index: i32,          // 顺序
-    pub name: String,        // 类名
-    pub cate_type: i32,      // 大类小类， 0 大类， 1小类，再变大，则更小
-    pub parent_name: String, // 父类
-}
-
-async fn api_save_cates() -> ERPResult<()> {
+async fn api_edit_cate(
+    State(state): State<CateState>,
+    WithRejection(Json(params), _): WithRejection<Json<EditParams>, ERPError>,
+) -> ERPResult<()> {
+    // state.cate_service
     todo!()
 }
 

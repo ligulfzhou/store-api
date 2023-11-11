@@ -27,14 +27,15 @@ impl CateServiceTrait for CateService {
     }
 
     async fn get_all_cates(&self) -> ERPResult<Vec<CateDto>> {
-        let cates_dto = sqlx::query_as!(CateModel, "select * from cates order by index, id;")
-            .fetch_all(self.db.get_pool())
-            .await?
-            .into_iter()
-            .map(CateDto::from)
-            .collect::<Vec<CateDto>>();
+        // let cates_dto = sqlx::query_as!(CateModel, "select * from cates order by index, id;")
+        //     .fetch_all(self.db.get_pool())
+        //     .await?
+        //     .into_iter()
+        //     .map(CateDto::from)
+        //     .collect::<Vec<CateDto>>();
 
-        Ok(cates_dto)
+        // Ok(cates_dto)
+        Ok(vec![])
     }
 
     async fn update_cates(&self) -> ERPResult<()> {

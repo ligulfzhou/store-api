@@ -2,19 +2,23 @@ use crate::model::cates::CateModel;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CateDto {
-    pub id: i32,                // SERIAL
-    pub index: i32,             // 顺序
-    pub name: String,           // 类名
-    pub sub_cates: Vec<String>, // 子类
+    pub id: i32,        // SERIAL
+    pub index: i32,     // 顺序
+    pub name: String,   // 类名
+    pub cate_type: i32, // 大类小类， 0 大类， 1小类，再变大，则更小
+    pub parent_id: i32, // 父类ID
+    pub sub_cates: Option<Vec<CateDto>>,
 }
 
 impl CateDto {
-    pub fn from(cate: CateModel) -> Self {
+    pub fn from(cate: CateModel, sub_cates: Option<Vec<CateModel>>) -> Self {
         Self {
             id: cate.id,
             index: cate.index,
             name: cate.name,
-            sub_cates: cate.sub_cates,
+            cate_type: cate.cate_type,
+            parent_id: cate.parent_id,
+            sub_cates: None,
         }
     }
 }

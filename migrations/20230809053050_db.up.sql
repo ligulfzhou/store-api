@@ -56,8 +56,7 @@ create table accounts
     password    text      not null default '',
     create_time TIMESTAMP not null default now() -- 创建时间
 );
-insert into accounts (name, account, password)
-values ('测试账号', 'test', 'test');
+insert into accounts (name, account, password) values ('测试账号', 'test', 'test');
 
 -- 订单
 create table orders
@@ -80,7 +79,7 @@ create table order_items
     count       integer   not null default 0,
     price       integer   not null default 0,
     create_time TIMESTAMP not null default now() -- 创建时间
-)
-create index idx_order_items_order_id on orders (order_id);
-create index idx_order_items_item_id on orders (item_id);
+);
+create index idx_order_items_order_id on order_items (order_id);
+create index idx_order_items_item_id on order_items (item_id);
 

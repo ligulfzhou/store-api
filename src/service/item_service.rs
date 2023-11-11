@@ -133,31 +133,22 @@ impl ItemServiceTrait for ItemService {
                 // 新增item
                 sqlx::query!(
                     r#"
-                    insert into items (brand, cates1, cates2, goods_no, color, name, size, unit,
-                     barcode, sell_price, buy_price, images, supplier, material, pcs, weight, 
-                     english_name, description, notes )
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 
-                     $17, $18, $19);
+                    insert into items (images, name, size, color, cate1_id, cate2_id, unit,
+                     price, cost, notes, number, barcode)
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
                     "#,
-                    params.brand,
-                    params.cates1,
-                    params.cates2,
-                    params.goods_no,
-                    params.color,
+                    &params.images,
                     params.name,
                     params.size,
+                    params.color,
+                    params.cate1_id,
+                    params.cate2_id,
                     params.unit,
-                    params.barcode,
-                    params.sell_price,
-                    params.buy_price,
-                    &params.images,
-                    params.supplier,
-                    params.material,
-                    params.pcs,
-                    params.weight,
-                    params.english_name,
-                    params.description,
+                    &params.price,
+                    params.cost,
                     params.notes,
+                    params.number,
+                    params.barcode,
                 )
                 .execute(self.db.get_pool())
                 .await?;
@@ -166,30 +157,21 @@ impl ItemServiceTrait for ItemService {
                 // 修改item
                 sqlx::query!(
                     r#"
-                    update items set brand=$1, cates1=$2, cates2=$3, goods_no=$4, color=$5, name=$6,
-                     size=$7, unit=$8, barcode=$9, sell_price=$10, buy_price=$11, images=$12, 
-                     supplier=$13, material=$14, pcs=$15, weight=$16, english_name=$17, description=$18, 
-                     notes=$19
-                    where id=$20"#,
-                    params.brand,
-                    params.cates1,
-                    params.cates2,
-                    params.goods_no,
-                    params.color,
+                    update items set images=$1, name=$2, size=$3, color=$4, cate1_id=$5, cate2_id=$6,
+                     unit=$7, price=$8, cost=$9, notes=$10, number=$11, barcode=$12
+                    where id=$13"#,
+                    &params.images,
                     params.name,
                     params.size,
+                    params.color,
+                    params.cate1_id,
+                    params.cate2_id,
                     params.unit,
-                    params.barcode,
-                    params.sell_price,
-                    params.buy_price,
-                    &params.images,
-                    params.supplier,
-                    params.material,
-                    params.pcs,
-                    params.weight,
-                    params.english_name,
-                    params.description,
+                    &params.price,
+                    params.cost,
                     params.notes,
+                    params.number,
+                    params.barcode,
                     params.id,
                 )
                 .execute(self.db.get_pool())

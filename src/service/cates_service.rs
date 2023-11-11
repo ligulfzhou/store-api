@@ -88,6 +88,17 @@ impl CateServiceTrait for CateService {
             }
             _ => {
                 // 修改item
+                let cate =
+                    sqlx::query_as!(CateModel, "select * from cates where id = $1", params.id)
+                        .fetch_one(self.db.get_pool())
+                        .await?;
+                match cate.cate_type {
+                    1 => {}
+                    _ => {
+                        // sqlx::query_as!(CateModel, "select * from cates where ")
+                    }
+                }
+
                 sqlx::query!(
                     r#"
                     update cates set index=$1, name=$2, cate_type=$3, parent_id=$4

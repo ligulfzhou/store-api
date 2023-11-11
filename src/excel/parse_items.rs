@@ -1,9 +1,21 @@
+use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::dto::dto_excel::ItemExcelDto;
 use crate::{ERPError, ERPResult};
 use umya_spreadsheet::*;
 
 /*
 品牌	产品大类	产品小类	货号	产品名称	规格	单位	条码	标准售价	进货价	供应商	库存数	修改时间	描述	备注
+
+图片（可多张）
+名称
+规格
+颜色
+类别（大类+小类）
+单位
+售价
+成本
+备注（可空）
+编号（6位数字，688001，688002...)
 */
 pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
     let path = std::path::Path::new(file_path);
@@ -20,7 +32,12 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
     for i in 2..rows {
         let mut cur = ItemExcelDto::default();
 
+        let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
+            if j == 1 {
+                images = items_sheet.get_images((j, i));
+            }
+
             let cell = items_sheet.get_cell((j, i));
             if cell.is_none() {
                 // tracing::info!("cell({:?}, {:?}): Null", i, j);
@@ -32,43 +49,36 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
                 // tracing::info!("cell({:?}, {:?}): Empty", i, j);
                 continue;
             }
-            // tracing::info!("cell({:?}, {:?}): {:?}", i, j, cell_value);
 
-            // todo: 解析code
             match j {
-                1 => cur.brand = cell_value.trim().to_string(),
-                2 => cur.cates1 = cell_value.trim().to_string(),
-                3 => cur.cates2 = cell_value.trim().to_string(),
-                // 4 => {
-                //     let str_value = cell_value.trim().to_string();
-                //     let code_with_color = str_value.split("-").collect::<Vec<&str>>();
-                //     if code_with_color.len() < 2 {
-                //         return Err(ERPError::ExcelError(format!("第{:?}行的货号数据有问题", i)));
-                //     }
-                //     cur.goods_no = code_with_color[0].to_string();
-                //     cur.color = code_with_color[1].to_string();
-                // }
-                // 5 => cur.name = cell_value.trim().to_string(),
-                4 => {}
-                5 => {
-                    let str_value = cell_value.trim().to_string();
-                    let code_with_color = str_value.split("-").collect::<Vec<&str>>();
-                    cur.goods_no = code_with_color[0].to_string();
-
-                    if code_with_color.len() >= 2 {
-                        cur.color = code_with_color[1].to_string();
-                    }
-                    cur.name = cell_value.trim().to_string();
-                }
-
-                6 => cur.size = cell_value.trim().to_string(),
-                7 => cur.unit = cell_value.trim().to_string(),
-                8 => cur.barcode = cell_value.trim().to_string(),
-                9 => cur.sell_price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
-                10 => cur.buy_price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
+                // 1 => cur.name = cell_value.trim().to_string(),
+                2 => cur.name = cell_value.trim().to_string(),
+                3 => cur.color = cell_value.trim().to_string(),
+                4 => cur.cates1 = cell_value.trim().to_string(),
+                5 => cur.cates2 = cell_value.trim().to_string(),
+                6 => cur.number = cell_value.trim().to_string(),
+                7 => cur.barcode = cell_value.trim().to_string(),
+                8 => cur.size = cell_value.trim().to_string(),
+                9 => cur.unit = cell_value.trim().to_string(),
+                10 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
+                11 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
+                12 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
         }
+
+        if cur.barcode.is_empty() {}
+
+        // let mut image_urls = vec![];
+        // if !images.is_empty() {
+        //     for (index, real_goods_image) in images.into_iter().enumerate() {
+        //         let sku_image_name = format!("{}-{}-{}.png", , index, order_no);
+        //         let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+        //         real_goods_image.download_image(&goods_image_path);
+        //         image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+        //     }
+        // }
+        // cur. = image_urls;
 
         // tracing::info!("rows#{:?}: {:?}", i, cur);
         items.push(cur);

@@ -56,18 +56,16 @@ impl CustomerServiceTrait for CustomerService {
             0 => {
                 sqlx::query!(
                     r#"
-                    insert into customers (customer_no, ty_pe, name, head, address, 
-                        email, birthday, qq, phone, notes)
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+                    insert into customers (ty_pe, name, head, address, 
+                        email, birthday, phone, notes)
+                    values ($1, $2, $3, $4, $5, $6, $7, $8);
                     "#,
-                    param.customer_no,
                     param.ty_pe,
                     param.name,
                     param.head,
                     param.address,
                     param.email,
                     param.birthday,
-                    param.qq,
                     param.phone,
                     param.notes,
                 )
@@ -77,20 +75,18 @@ impl CustomerServiceTrait for CustomerService {
             _ => {
                 sqlx::query!(
                     r#"
-                    update customers set customer_no=$1, ty_pe=$2, name=$3, 
+                    update customers set notes=$1, ty_pe=$2, name=$3, 
                         head=$4, address=$5, email=$6, birthday=$7, 
-                        qq=$8, phone=$9, notes=$10 
-                    where id=$11"#,
-                    param.customer_no,
+                        phone=$8
+                    where id=$9"#,
+                    param.notes,
                     param.ty_pe,
                     param.name,
                     param.head,
                     param.address,
                     param.email,
                     param.birthday,
-                    param.qq,
                     param.phone,
-                    param.notes,
                     param.id,
                 )
                 .execute(self.db.get_pool())

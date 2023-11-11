@@ -118,77 +118,77 @@ async fn import_excel(
         })
         .collect::<Vec<String>>();
 
-    let existing_goods_nos_with_color = match goods_nos.len() {
-        0 => vec![],
-        _ => sqlx::query!(
-            "select goods_no, color from items where goods_no = any($1)",
-            &goods_nos
-        )
-        .fetch_all(state.db.get_pool())
-        .await
-        .map_err(ERPError::DBError)?
-        .into_iter()
-        .map(|r| format!("{}-{}", r.goods_no, r.color))
-        .collect::<Vec<String>>(),
-    };
-    tracing::info!(
-        "existing_goods_nos_with_color: {:?}",
-        existing_goods_nos_with_color
-    );
-
-    let to_add_items = items
-        .into_iter()
-        .filter(|item| {
-            !existing_barcodes.contains(&item.barcode)
-                && !existing_goods_nos_with_color
-                    .contains(&format!("{}-{}", item.goods_no, item.color))
-        })
-        .collect::<Vec<ItemExcelDto>>();
-
-    if !to_add_items.is_empty() {
-        let item_models = to_add_items
-            .into_iter()
-            .map(|item| ItemsModel {
-                id: 0,
-                color: item.color,
-                // todo
-                cate1_id: 0,
-                name: item.name,
-                size: item.size,
-                unit: item.unit,
-                // todo
-                price: 0,
-                barcode: item.barcode,
-                notes: "".to_string(),
-                images: vec![],
-                create_time: Default::default(),
-                cate2_id: 0,
-                cost: 0,
-                number: "".to_string(),
-            })
-            .collect::<Vec<ItemsModel>>();
-
-        tracing::info!("insert {:?} items", item_models.len());
-
-        let mut st = 0;
-        let l = 1000;
-        while st < item_models.len() {
-            if st + 1000 > item_models.len() {
-                tracing::info!("{:?} \n", &item_models[st..].len());
-                state
-                    .item_service
-                    .insert_multiple_items(&item_models[st..])
-                    .await?;
-            } else {
-                tracing::info!("{:?} \n", &item_models[st..(st + 1000)].len());
-                state
-                    .item_service
-                    .insert_multiple_items(&item_models[st..(st + 1000)])
-                    .await?;
-            }
-            st += l;
-        }
-    }
+    // let existing_goods_nos_with_color = match goods_nos.len() {
+    //     0 => vec![],
+    //     _ => sqlx::query!(
+    //         "select goods_no, color from items where goods_no = any($1)",
+    //         &goods_nos
+    //     )
+    //     .fetch_all(state.db.get_pool())
+    //     .await
+    //     .map_err(ERPError::DBError)?
+    //     .into_iter()
+    //     .map(|r| format!("{}-{}", r.goods_no, r.color))
+    //     .collect::<Vec<String>>(),
+    // };
+    // tracing::info!(
+    //     "existing_goods_nos_with_color: {:?}",
+    //     existing_goods_nos_with_color
+    // );
+    //
+    // let to_add_items = items
+    //     .into_iter()
+    //     .filter(|item| {
+    //         !existing_barcodes.contains(&item.barcode)
+    //             && !existing_goods_nos_with_color
+    //                 .contains(&format!("{}-{}", item.goods_no, item.color))
+    //     })
+    //     .collect::<Vec<ItemExcelDto>>();
+    //
+    // if !to_add_items.is_empty() {
+    //     let item_models = to_add_items
+    //         .into_iter()
+    //         .map(|item| ItemsModel {
+    //             id: 0,
+    //             color: item.color,
+    //             // todo
+    //             cate1_id: 0,
+    //             name: item.name,
+    //             size: item.size,
+    //             unit: item.unit,
+    //             // todo
+    //             price: 0,
+    //             barcode: item.barcode,
+    //             notes: "".to_string(),
+    //             images: vec![],
+    //             create_time: Default::default(),
+    //             cate2_id: 0,
+    //             cost: 0,
+    //             number: "".to_string(),
+    //         })
+    //         .collect::<Vec<ItemsModel>>();
+    //
+    //     tracing::info!("insert {:?} items", item_models.len());
+    //
+    //     let mut st = 0;
+    //     let l = 1000;
+    //     while st < item_models.len() {
+    //         if st + 1000 > item_models.len() {
+    //             tracing::info!("{:?} \n", &item_models[st..].len());
+    //             state
+    //                 .item_service
+    //                 .insert_multiple_items(&item_models[st..])
+    //                 .await?;
+    //         } else {
+    //             tracing::info!("{:?} \n", &item_models[st..(st + 1000)].len());
+    //             state
+    //                 .item_service
+    //                 .insert_multiple_items(&item_models[st..(st + 1000)])
+    //                 .await?;
+    //         }
+    //         st += l;
+    //     }
+    // }
 
     Ok(APIEmptyResponse::new())
 }

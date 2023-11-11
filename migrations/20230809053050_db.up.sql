@@ -50,10 +50,10 @@ create index idx_tems_cates on items (cate1_id, cate2_id);
 -- 账号
 create table accounts
 (
-    id       serial PRIMARY KEY,
-    name     text not null default '',
-    account  text not null default '',
-    password text not null default '',
+    id          serial PRIMARY KEY,
+    name        text      not null default '',
+    account     text      not null default '',
+    password    text      not null default '',
     create_time TIMESTAMP not null default now() -- 创建时间
 );
 insert into accounts (name, account, password)
@@ -73,12 +73,14 @@ create index idx_orders_order_no on orders (order_no);
 -- 订单商品
 create table order_items
 (
-    id      serial PRIMARY KEY,
-    index   integer not null default 0,
-    item_id integer not null default 0,
-    count   integer not null default 0,
-    price   integer not null default 0
+    id          serial PRIMARY KEY,
+    order_id    integer   not null default 0,
+    index       integer   not null default 0,
+    item_id     integer   not null default 0,
+    count       integer   not null default 0,
+    price       integer   not null default 0,
+    create_time TIMESTAMP not null default now() -- 创建时间
 )
-
-
+create index idx_order_items_order_id on orders (order_id);
+create index idx_order_items_item_id on orders (item_id);
 

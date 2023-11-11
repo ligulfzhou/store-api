@@ -16,7 +16,6 @@ pub trait CateServiceTrait {
     async fn get_all_cates(&self) -> ERPResult<Vec<CateDto>>;
 
     async fn update_cates(&self) -> ERPResult<()>;
-    // async fn add_cate(&self) -> ERPResult<()>;
 
     async fn extract_cates(&self) -> ERPResult<()>;
 }

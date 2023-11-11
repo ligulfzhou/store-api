@@ -1,6 +1,6 @@
 use crate::model::cates::CateModel;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CateDto {
     pub id: i32,        // SERIAL
     pub index: i32,     // 顺序

@@ -4,3 +4,4 @@ pub mod dto_customer;
 pub mod dto_excel;
 pub mod dto_items;
 pub mod dto_orders;
+pub mod dto_settings;

@@ -56,7 +56,8 @@ create table accounts
     password    text      not null default '',
     create_time TIMESTAMP not null default now() -- 创建时间
 );
-insert into accounts (name, account, password) values ('测试账号', 'test', 'test');
+insert into accounts (name, account, password)
+values ('测试账号', 'test', 'test');
 
 -- 订单
 create table orders
@@ -83,3 +84,25 @@ create table order_items
 create index idx_order_items_order_id on order_items (order_id);
 create index idx_order_items_item_id on order_items (item_id);
 
+-- 配置信息
+create table global_settings
+(
+    id       serial PRIMARY KEY,
+    units    text[] not null default '{}', -- 产品单位
+    accounts text[] not null default '{}'  -- 收款账号
+);
+
+create table color_settings
+(
+    id          serial PRIMARY KEY,
+    color       text      not null default '',
+    value       integer   not null default 0,
+    create_time TIMESTAMP not null default now() -- 创建时间
+);
+insert into color_settings(color, value) values ('金', 1), ('钢', 2);
+
+create table customer_types
+(
+    id            serial PRIMARY KEY,
+    customer_type text not null default ''
+);

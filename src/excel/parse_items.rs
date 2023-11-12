@@ -4,13 +4,12 @@ use crate::{ERPError, ERPResult};
 use umya_spreadsheet::*;
 
 /*
-品牌	产品大类	产品小类	货号	产品名称	规格	单位	条码	标准售价	进货价	供应商	库存数	修改时间	描述	备注
-
 图片（可多张）
 名称
-规格
 颜色
-类别（大类+小类）
+类别（大类)
+类别 (小类）
+规格
 单位
 售价
 成本
@@ -67,6 +66,7 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
             }
         }
 
+        // if cur.
         if cur.barcode.is_empty() {}
 
         // let mut image_urls = vec![];

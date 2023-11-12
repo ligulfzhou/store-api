@@ -4,6 +4,7 @@ use crate::state::account_state::AccountState;
 use crate::state::cate_state::CateState;
 use crate::state::customer_state::CustomerState;
 use crate::state::item_state::ItemState;
+use crate::state::settings_state::SettingsState;
 use axum::extract::DefaultBodyLimit;
 use axum::http::{header, Method};
 use axum::response::Response;
@@ -18,6 +19,7 @@ mod routes_customer;
 mod routes_excel;
 mod routes_items;
 mod routes_login;
+mod routes_settings;
 mod routes_static;
 mod routes_upload;
 
@@ -68,8 +70,7 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
         )
         .merge(routes_items::routes().with_state(ItemState::new(&db)))
         .merge(routes_upload::routes())
-        // .merge(routes_account::routes(app_state.clone()))
-        // .merge(routes_customer::routes(app_state.clone()))
+        .merge(routes_settings::routes().with_state(SettingsState::new(&db)))
         .merge(routes_excel::routes().with_state(ItemState::new(&db)))
         .merge(routes_login::routes().with_state(AccountState::new(&db)))
         // todo: for test

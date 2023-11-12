@@ -47,7 +47,7 @@ impl SettingsServiceTrait for SettingsService {
                     > 0
                 {
                     return Err(ERPError::AlreadyExists(format!(
-                        "颜色为{:?}的已经存在",
+                        "颜色为'{}'的已经存在",
                         params.color
                     )));
                 }

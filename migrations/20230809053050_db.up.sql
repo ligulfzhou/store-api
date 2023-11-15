@@ -1,11 +1,12 @@
 -- 类别管理
 create table cates
 (
-    id        serial,
-    index     integer not null default 0,  -- 序号
-    name      text    not null default '', -- 类名
-    cate_type integer not null default 0,  -- 大类小类， 0 大类， 1小类，再变大，则更小
-    parent_id integer not null default 0   -- 父类
+    id          serial,
+    index       integer   not null default 0,    -- 序号
+    name        text      not null default '',   -- 类名
+    cate_type   integer   not null default 0,    -- 大类小类， 0 大类， 1小类，再变大，则更小
+    parent_id   integer   not null default 0,    -- 父类
+    create_time TIMESTAMP not null default now() -- 创建时间
 );
 
 -- 客户
@@ -99,7 +100,9 @@ create table color_settings
     value       integer   not null default 0,
     create_time TIMESTAMP not null default now() -- 创建时间
 );
-insert into color_settings(color, value) values ('金', 1), ('钢', 2);
+insert into color_settings(color, value)
+values ('金', 1),
+       ('钢', 2);
 
 create table customer_types
 (

@@ -1,4 +1,5 @@
 use crate::model::cates::CateModel;
+use chrono::NaiveDateTime;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CateDto {
@@ -7,6 +8,7 @@ pub struct CateDto {
     pub name: String,   // 类名
     pub cate_type: i32, // 大类小类， 0 大类， 1小类，再变大，则更小
     pub parent_id: i32, // 父类ID
+    pub create_time: NaiveDateTime,
     pub sub_cates: Option<Vec<CateDto>>,
 }
 
@@ -18,6 +20,7 @@ impl CateDto {
             name: cate.name,
             cate_type: cate.cate_type,
             parent_id: cate.parent_id,
+            create_time: cate.create_time,
             sub_cates,
         }
     }

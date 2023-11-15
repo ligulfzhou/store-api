@@ -1,4 +1,5 @@
 use crate::dto::dto_settings::ColorEditParams;
+use crate::dto::GenericDeleteParams;
 use crate::model::settings::ColorSettingsModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::settings_service::SettingsServiceTrait;
@@ -17,6 +18,10 @@ pub fn routes() -> Router<SettingsState> {
         .route(
             "/api/settings/edit/color/value",
             post(api_edit_color_values),
+        )
+        .route(
+            "/api/settings/delete/color/value",
+            post(api_delete_color_values),
         )
 }
 
@@ -38,6 +43,20 @@ async fn api_edit_color_values(
     tracing::info!("->> {:<12}, api_get_color_values", "handler");
 
     state.settings_service.edit_color_to_value(&params).await?;
+
+    Ok(APIEmptyResponse::new())
+}
+
+async fn api_delete_color_values(
+    State(state): State<SettingsState>,
+    WithRejection(Json(params), _): WithRejection<Json<GenericDeleteParams>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    tracing::info!("->> {:<12}, delete_get_color_values", "handler");
+
+    state
+        .settings_service
+        .delete_color_to_value(&params)
+        .await?;
 
     Ok(APIEmptyResponse::new())
 }

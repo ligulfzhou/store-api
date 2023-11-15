@@ -1,5 +1,6 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::dto::dto_settings::ColorEditParams;
+use crate::dto::GenericDeleteParams;
 use crate::model::settings::ColorSettingsModel;
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
@@ -16,6 +17,7 @@ pub trait SettingsServiceTrait {
 
     async fn get_all_color_to_values(&self) -> ERPResult<Vec<ColorSettingsModel>>;
     async fn edit_color_to_value(&self, params: &ColorEditParams) -> ERPResult<()>;
+    async fn delete_color_to_value(&self, params: &GenericDeleteParams) -> ERPResult<()>;
 }
 #[async_trait]
 impl SettingsServiceTrait for SettingsService {
@@ -112,6 +114,14 @@ impl SettingsServiceTrait for SettingsService {
                 .await?;
             }
         }
+
+        Ok(())
+    }
+
+    async fn delete_color_to_value(&self, params: &GenericDeleteParams) -> ERPResult<()> {
+        sqlx::query!("delete from color_settings where id = $1", params.id)
+            .execute(self.db.get_pool())
+            .await?;
 
         Ok(())
     }

@@ -82,9 +82,10 @@ async fn api_logout(
 #[cfg(test)]
 mod tests {
     use crate::handler::routes_login::LoginPayload;
+    use crate::ERPResult;
 
     #[tokio::test]
-    async fn test() -> anyhow::Result<()> {
+    async fn test() -> ERPResult<()> {
         let param = LoginPayload {
             account: "test".to_string(),
             password: "test".to_string(),

@@ -1,7 +1,7 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::dto::dto_cates::{CateDto, DeleteParams, EditParams};
 use crate::model::cates::CateModel;
-use crate::ERPResult;
+use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -70,6 +70,7 @@ impl CateServiceTrait for CateService {
     }
 
     async fn edit_cates(&self, params: &EditParams) -> ERPResult<()> {
+        // todo
         match params.id {
             0 => {
                 // 新增item
@@ -119,7 +120,40 @@ impl CateServiceTrait for CateService {
     }
 
     async fn delete_cate(&self, params: &DeleteParams) -> ERPResult<()> {
-        // todo: check if there are items with this cate.
+        let cate = sqlx::query_as!(CateModel, "select * from cates where id = $1", params.id)
+            .fetch_one(self.db.get_pool())
+            .await?;
+
+        // 检查产品是否存在
+        match cate.cate_type {
+            0 => {
+                let count = sqlx::query!("select count(1) from items where cate1_id = $1", cate.id)
+                    .fetch_one(self.db.get_pool())
+                    .await?
+                    .count
+                    .unwrap_or(0) as i32;
+                if count > 0 {
+                    return Err(ERPError::Failed(format!(
+                        "删除不合法, 大类为{}的商品还有{}个",
+                        cate.name, count
+                    )));
+                }
+            }
+            _ => {
+                let count = sqlx::query!("select count(1) from items where cate2_id = $1", cate.id)
+                    .fetch_one(self.db.get_pool())
+                    .await?
+                    .count
+                    .unwrap_or(0) as i32;
+                if count > 0 {
+                    return Err(ERPError::Failed(format!(
+                        "删除不合法, 小类为{}的商品还有{}个",
+                        cate.name, count
+                    )));
+                }
+            }
+        }
+
         sqlx::query!("delete from cates where id = $1", params.id)
             .execute(self.db.get_pool())
             .await?;

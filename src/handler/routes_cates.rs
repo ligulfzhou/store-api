@@ -1,5 +1,5 @@
 use crate::dto::dto_cates::{CateDto, EditParams};
-use crate::response::api_response::APIListResponse;
+use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::cates_service::CateServiceTrait;
 use crate::state::cate_state::CateState;
 use crate::{ERPError, ERPResult};
@@ -11,7 +11,8 @@ use axum_extra::extract::WithRejection;
 pub fn routes() -> Router<CateState> {
     Router::new()
         .route("/api/cates", get(api_cates_list))
-        .route("/api/edit/cates", post(api_edit_cate))
+        .route("/api/edit/cates1", post(api_edit_cate))
+        .route("/api/edit/cates2", post(api_edit_cate))
         .route("/api/delete/cates", post(api_cates_list))
 }
 
@@ -24,29 +25,31 @@ async fn api_cates_list(State(state): State<CateState>) -> ERPResult<APIListResp
 async fn api_edit_cate(
     State(state): State<CateState>,
     WithRejection(Json(params), _): WithRejection<Json<EditParams>, ERPError>,
-) -> ERPResult<()> {
-    // state.cate_service
-    todo!()
+) -> ERPResult<APIEmptyResponse> {
+    state.cate_service.edit_cates(&params).await?;
+
+    Ok(APIEmptyResponse::new())
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::handler::routes_login::LoginPayload;
-//
-//     #[tokio::test]
-//     async fn test() -> anyhow::Result<()> {
-//         let param = LoginPayload {
-//             account: "test".to_string(),
-//             password: "test".to_string(),
-//         };
-//         let client = httpc_test::new_client("http://localhost:9100")?;
-//         client
-//             .do_post("/api/login", serde_json::json!(param))
-//             .await?
-//             .print()
-//             .await?;
-//
-//         client.do_get("/api/account/info").await?.print().await?;
-//         Ok(())
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use crate::handler::routes_login::LoginPayload;
+    use crate::ERPResult;
+
+    #[tokio::test]
+    async fn test() -> ERPResult<()> {
+        let param = LoginPayload {
+            account: "test".to_string(),
+            password: "test".to_string(),
+        };
+        let client = httpc_test::new_client("http://localhost:9100")?;
+        client
+            .do_post("/api/login", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        client.do_get("/api/account/info").await?.print().await?;
+        Ok(())
+    }
+}

@@ -87,9 +87,10 @@ pub fn is_empty_string_vec(str_vec: Vec<&str>) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::common::string::common_prefix;
+    use crate::ERPResult;
 
     #[test]
-    fn test_lcp() -> anyhow::Result<()> {
+    fn test_lcp() -> ERPResult<()> {
         let cp = common_prefix(vec![
             "helloworld".to_string(),
             "hellobob".to_string(),

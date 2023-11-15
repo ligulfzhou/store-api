@@ -4,7 +4,6 @@ use crate::dto::GenericDeleteParams;
 use crate::model::settings::{ColorSettingsModel, GlobalSettingsModel};
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
-use sqlx::query::Query;
 use sqlx::{Postgres, QueryBuilder};
 use std::sync::Arc;
 
@@ -45,12 +44,11 @@ impl SettingsServiceTrait for SettingsService {
         match params.id {
             0 => {
                 // 检查 颜色 是否已经存在
-                if existing
+                if !existing
                     .iter()
                     .filter(|&item| item.color == params.color)
                     .collect::<Vec<&ColorSettingsModel>>()
-                    .len()
-                    > 0
+                    .is_empty()
                 {
                     return Err(ERPError::AlreadyExists(format!(
                         "颜色为'{}'的已经存在",
@@ -59,12 +57,11 @@ impl SettingsServiceTrait for SettingsService {
                 }
 
                 // 检查 数值 是否已经存在
-                if existing
+                if !existing
                     .iter()
                     .filter(|&item| item.value == params.value)
                     .collect::<Vec<&ColorSettingsModel>>()
-                    .len()
-                    > 0
+                    .is_empty()
                 {
                     return Err(ERPError::AlreadyExists(format!(
                         "值为{:?}的已经存在",
@@ -81,12 +78,11 @@ impl SettingsServiceTrait for SettingsService {
                 .await?;
             }
             _ => {
-                if existing
+                if !existing
                     .iter()
                     .filter(|&item| item.color == params.color && item.id != params.id)
                     .collect::<Vec<&ColorSettingsModel>>()
-                    .len()
-                    > 0
+                    .is_empty()
                 {
                     return Err(ERPError::AlreadyExists(format!(
                         "颜色为{:?}的已经存在",
@@ -95,12 +91,11 @@ impl SettingsServiceTrait for SettingsService {
                 }
 
                 // 检查 数值 是否已经存在
-                if existing
+                if !existing
                     .iter()
                     .filter(|&item| item.value == params.value && item.id != params.id)
                     .collect::<Vec<&ColorSettingsModel>>()
-                    .len()
-                    > 0
+                    .is_empty()
                 {
                     return Err(ERPError::AlreadyExists(format!(
                         "值为{:?}的已经存在",
@@ -151,8 +146,6 @@ impl SettingsServiceTrait for SettingsService {
         if params.accounts.is_some() {
             sql.push("accounts=").push_bind(params.accounts.as_ref());
         }
-
-        println!("{}", sql.sql());
 
         sql.build().execute(self.db.get_pool()).await?;
 

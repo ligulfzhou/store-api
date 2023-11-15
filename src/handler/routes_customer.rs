@@ -1,7 +1,4 @@
-use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_customer::{
-    CustomerDeleteParam, CustomerDto, CustomerEditParam, CustomerSearchParam,
-};
+use crate::dto::dto_customer::{CustomerDeleteParam, CustomerEditParam, CustomerSearchParam};
 use crate::model::customer::CustomerModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::service::customer_service::CustomerServiceTrait;

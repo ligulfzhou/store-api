@@ -1,7 +1,7 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::dto::dto_customer::{CustomerEditParam, CustomerSearchParam};
 use crate::model::customer::CustomerModel;
-use crate::ERPResult;
+use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -51,9 +51,29 @@ impl CustomerServiceTrait for CustomerService {
     }
 
     async fn edit_customer(&self, param: &CustomerEditParam) -> ERPResult<()> {
+        let existing = sqlx::query_as!(
+            CustomerModel,
+            "select * from customers where name = $1",
+            param.name
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
         let id = param.id.unwrap_or(0);
         match id {
             0 => {
+                if !existing
+                    .iter()
+                    .filter(|item| item.name == param.name)
+                    .collect::<Vec<&CustomerModel>>()
+                    .is_empty()
+                {
+                    return Err(ERPError::AlreadyExists(format!(
+                        "名字为{}已经存在",
+                        param.name
+                    )));
+                }
+
                 sqlx::query!(
                     r#"
                     insert into customers (ty_pe, name, head, address, 
@@ -73,6 +93,17 @@ impl CustomerServiceTrait for CustomerService {
                 .await?;
             }
             _ => {
+                if !existing
+                    .iter()
+                    .filter(|item| item.name == param.name && item.id != id)
+                    .collect::<Vec<&CustomerModel>>()
+                    .is_empty()
+                {
+                    return Err(ERPError::AlreadyExists(format!(
+                        "名字为{}已经存在",
+                        param.name
+                    )));
+                }
                 sqlx::query!(
                     r#"
                     update customers set notes=$1, ty_pe=$2, name=$3, 

@@ -72,7 +72,7 @@ impl CustomerSearchParam {
             ));
         }
 
-        if where_clauses.len() > 0 {
+        if !where_clauses.is_empty() {
             sql.push_str(&format!(" where {}", where_clauses.join(" and ")));
         }
 
@@ -111,7 +111,7 @@ impl CustomerSearchParam {
             ));
         }
 
-        if where_clauses.len() > 0 {
+        if !where_clauses.is_empty() {
             sql.push_str(&format!(" where {}", where_clauses.join(" and ")));
         }
 

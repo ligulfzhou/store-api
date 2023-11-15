@@ -144,11 +144,15 @@ impl SettingsServiceTrait for SettingsService {
     async fn update_global_settings(&self, params: &GlobalSettingsUpdateParams) -> ERPResult<()> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("update global_settings set ");
         if params.units.is_some() {
-            sql.push("units=").push_bind(params.units.as_ref());
+            sql.push("units=")
+                .push_bind(params.units.as_ref())
+                .push(",");
         }
         if params.accounts.is_some() {
             sql.push("accounts=").push_bind(params.accounts.as_ref());
         }
+
+        println!("{}", sql.sql());
 
         sql.build().execute(self.db.get_pool()).await?;
 

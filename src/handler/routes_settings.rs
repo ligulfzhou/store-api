@@ -1,7 +1,7 @@
-use crate::dto::dto_settings::ColorEditParams;
+use crate::dto::dto_settings::{ColorEditParams, GlobalSettingsUpdateParams};
 use crate::dto::GenericDeleteParams;
-use crate::model::settings::ColorSettingsModel;
-use crate::response::api_response::{APIEmptyResponse, APIListResponse};
+use crate::model::settings::{ColorSettingsModel, GlobalSettingsModel};
+use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::service::settings_service::SettingsServiceTrait;
 use crate::state::settings_state::SettingsState;
 use crate::{ERPError, ERPResult};
@@ -22,6 +22,11 @@ pub fn routes() -> Router<SettingsState> {
         .route(
             "/api/settings/delete/color/value",
             post(api_delete_color_values),
+        )
+        .route("/api/settings/global", get(api_get_global_settings))
+        .route(
+            "/api/settings/global/update",
+            post(api_update_global_settings),
         )
 }
 
@@ -56,6 +61,30 @@ async fn api_delete_color_values(
     state
         .settings_service
         .delete_color_to_value(&params)
+        .await?;
+
+    Ok(APIEmptyResponse::new())
+}
+
+async fn api_get_global_settings(
+    State(state): State<SettingsState>,
+) -> ERPResult<APIDataResponse<GlobalSettingsModel>> {
+    tracing::info!("->> {:<12}, api_get_global_settings", "handler");
+
+    let gs = state.settings_service.get_global_settings().await?;
+
+    Ok(APIDataResponse::new(gs))
+}
+
+async fn api_update_global_settings(
+    State(state): State<SettingsState>,
+    WithRejection(Json(params), _): WithRejection<Json<GlobalSettingsUpdateParams>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    tracing::info!("->> {:<12}, api_update_global_settings", "handler");
+
+    state
+        .settings_service
+        .update_global_settings(&params)
         .await?;
 
     Ok(APIEmptyResponse::new())

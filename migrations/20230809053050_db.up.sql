@@ -93,6 +93,8 @@ create table global_settings
     accounts text[] not null default '{}'  -- 收款账号
 );
 
+insert into global_settings (units, accounts) values ('{}', '{}');
+
 create table color_settings
 (
     id          serial PRIMARY KEY,

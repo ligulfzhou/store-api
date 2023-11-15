@@ -1,9 +1,11 @@
 use crate::config::database::{Database, DatabaseTrait};
-use crate::dto::dto_settings::ColorEditParams;
+use crate::dto::dto_settings::{ColorEditParams, GlobalSettingsUpdateParams};
 use crate::dto::GenericDeleteParams;
-use crate::model::settings::ColorSettingsModel;
+use crate::model::settings::{ColorSettingsModel, GlobalSettingsModel};
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
+use sqlx::query::Query;
+use sqlx::{Postgres, QueryBuilder};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -18,6 +20,8 @@ pub trait SettingsServiceTrait {
     async fn get_all_color_to_values(&self) -> ERPResult<Vec<ColorSettingsModel>>;
     async fn edit_color_to_value(&self, params: &ColorEditParams) -> ERPResult<()>;
     async fn delete_color_to_value(&self, params: &GenericDeleteParams) -> ERPResult<()>;
+    async fn get_global_settings(&self) -> ERPResult<GlobalSettingsModel>;
+    async fn update_global_settings(&self, params: &GlobalSettingsUpdateParams) -> ERPResult<()>;
 }
 #[async_trait]
 impl SettingsServiceTrait for SettingsService {
@@ -122,6 +126,31 @@ impl SettingsServiceTrait for SettingsService {
         sqlx::query!("delete from color_settings where id = $1", params.id)
             .execute(self.db.get_pool())
             .await?;
+
+        Ok(())
+    }
+
+    async fn get_global_settings(&self) -> ERPResult<GlobalSettingsModel> {
+        let global_settings = sqlx::query_as!(
+            GlobalSettingsModel,
+            "select * from global_settings order by id limit 1"
+        )
+        .fetch_one(self.db.get_pool())
+        .await?;
+
+        Ok(global_settings)
+    }
+
+    async fn update_global_settings(&self, params: &GlobalSettingsUpdateParams) -> ERPResult<()> {
+        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("update global_settings set ");
+        if params.units.is_some() {
+            sql.push("units=").push_bind(params.units.as_ref());
+        }
+        if params.accounts.is_some() {
+            sql.push("accounts=").push_bind(params.accounts.as_ref());
+        }
+
+        sql.build().execute(self.db.get_pool()).await?;
 
         Ok(())
     }

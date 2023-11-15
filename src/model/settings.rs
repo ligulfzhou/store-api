@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 pub struct GlobalSettingsModel {
     pub id: i32,
     pub units: Vec<String>,
+    pub accounts: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]

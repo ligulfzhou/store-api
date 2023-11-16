@@ -59,10 +59,7 @@ async fn api_login(
     Ok(response)
 }
 
-async fn api_logout(
-    State(state): State<AccountState>,
-    WithRejection(Json(payload), _): WithRejection<Json<LoginPayload>, ERPError>,
-) -> ERPResult<impl IntoResponse> {
+async fn api_logout(State(state): State<AccountState>) -> ERPResult<impl IntoResponse> {
     let cookie = Cookie::build("account_id", "")
         .path("/")
         .max_age(time::Duration::hours(-1))

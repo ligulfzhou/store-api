@@ -70,6 +70,63 @@ impl CateServiceTrait for CateService {
     }
 
     async fn edit_cates(&self, params: &EditParams) -> ERPResult<()> {
+        let cates = self.get_all_cates().await?;
+
+        // checking collision
+        match params.cate_type {
+            0 => {
+                let names = cates
+                    .iter()
+                    .filter_map(|item| {
+                        if item.id == params.id {
+                            None
+                        } else {
+                            Some(&item.name)
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                if names.contains(&&params.name) {
+                    return Err(ERPError::AlreadyExists(format!(
+                        "大类{}已存在",
+                        params.name
+                    )));
+                }
+            }
+            _ => {
+                let pcates = cates
+                    .iter()
+                    .filter(|item| item.id == params.parent_id)
+                    .collect::<Vec<&CateDto>>();
+
+                if pcates.is_empty() {
+                    return Err(ERPError::NotFound("大类未找到".to_string()));
+                }
+
+                let pcate = pcates[0];
+                let names = match &pcate.sub_cates {
+                    None => vec![],
+                    Some(sub_cates) => sub_cates
+                        .iter()
+                        .filter_map(|item| {
+                            if params.id == item.id {
+                                None
+                            } else {
+                                Some(&item.name)
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                };
+
+                if names.contains(&&params.name) {
+                    return Err(ERPError::AlreadyExists(format!(
+                        "小类{}已存在",
+                        params.name
+                    )));
+                }
+            }
+        };
+
         // todo
         match params.id {
             0 => {

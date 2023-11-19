@@ -11,7 +11,7 @@ use axum_extra::extract::WithRejection;
 pub fn routes() -> Router<CateState> {
     Router::new()
         .route("/api/cates", get(api_cates_list))
-        .route("/api/edit/cates1", post(api_edit_cate))
+        .route("/api/edit/cates", post(api_edit_cate))
         .route("/api/edit/cates2", post(api_edit_cate))
         .route("/api/delete/cates", post(api_cates_list))
 }

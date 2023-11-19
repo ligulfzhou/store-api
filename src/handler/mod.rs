@@ -16,6 +16,7 @@ use tower_http::cors::CorsLayer;
 mod routes_account;
 mod routes_cates;
 mod routes_customer;
+mod routes_embryo;
 mod routes_excel;
 mod routes_items;
 mod routes_login;

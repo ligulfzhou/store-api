@@ -9,12 +9,12 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct ItemService {
+pub struct EmbryoService {
     pub db: Arc<Database>,
 }
 
 #[async_trait]
-pub trait ItemServiceTrait {
+pub trait EmbryoServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>>;
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
@@ -24,7 +24,7 @@ pub trait ItemServiceTrait {
 }
 
 #[async_trait]
-impl ItemServiceTrait for ItemService {
+impl EmbryoServiceTrait for EmbryoService {
     fn new(db: &Arc<Database>) -> Self {
         Self { db: Arc::clone(db) }
     }
@@ -38,11 +38,13 @@ impl ItemServiceTrait for ItemService {
                     .push_bind(params.brand.deref());
                 and = " and ";
             }
+
             if !params.cates1.is_empty() {
                 sql.push(&format!("{} cates1= ", and))
                     .push_bind(params.cates1.deref());
                 and = " and ";
             }
+
             if !params.cates2.is_empty() {
                 sql.push(&format!("{} cates2= ", and))
                     .push_bind(params.cates2.deref());
@@ -61,6 +63,7 @@ impl ItemServiceTrait for ItemService {
         }
         //     let field = param.sorter_field.as_deref().unwrap_or("id");
         //     let order = param.sorter_order.as_deref().unwrap_or("desc");
+        //
         let page = params.page.unwrap_or(1);
         let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
@@ -167,8 +170,8 @@ impl ItemServiceTrait for ItemService {
                     params.barcode,
                     params.id,
                 )
-                .execute(self.db.get_pool())
-                .await?;
+                    .execute(self.db.get_pool())
+                    .await?;
             }
         };
 
@@ -186,7 +189,7 @@ impl ItemServiceTrait for ItemService {
     // todo
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()> {
         let mut query_builder: QueryBuilder<Postgres> =
-                    QueryBuilder::new("insert into items (images, name, size, color, cate1_id, cate2_id, unit, price, cost, notes, number, barcode) ");
+            QueryBuilder::new("insert into items (images, name, size, color, cate1_id, cate2_id, unit, price, cost, notes, number, barcode) ");
 
         query_builder.push_values(rows, |mut b, item| {
             b.push_bind(item.images.clone())

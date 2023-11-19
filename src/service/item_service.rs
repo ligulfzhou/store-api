@@ -5,6 +5,7 @@ use crate::model::items::ItemsModel;
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -19,11 +20,8 @@ pub trait ItemServiceTrait {
 
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>>;
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
-
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
-
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
-
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()>;
 }
 

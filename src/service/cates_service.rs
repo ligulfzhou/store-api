@@ -4,6 +4,7 @@ use crate::dto::GenericDeleteParams;
 use crate::model::cates::CateModel;
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
+use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -24,6 +25,10 @@ pub trait CateServiceTrait {
     async fn extract_cates(&self) -> ERPResult<()>;
 
     async fn delete_cate(&self, params: &GenericDeleteParams) -> ERPResult<()>;
+
+    async fn insert_multiple_cate1(&self, names: &[&str]) -> ERPResult<HashMap<String, i32>>;
+
+    async fn insert_multiple_cate2(&self, items: &[CateModel]) -> ERPResult<Vec<CateModel>>;
 }
 
 #[async_trait]
@@ -66,8 +71,19 @@ impl CateServiceTrait for CateService {
 
         Ok(cates)
     }
-    async fn extract_cates(&self) -> ERPResult<()> {
-        todo!()
+    async fn get_sub_cates_of(&self, parent_id: i32) -> ERPResult<Vec<CateDto>> {
+        let cates = sqlx::query_as!(
+            CateModel,
+            "select * from cates where parent_id = $1 order by index, id;",
+            parent_id
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| CateDto::from(item, None))
+        .collect::<Vec<CateDto>>();
+
+        Ok(cates)
     }
 
     async fn edit_cates(&self, params: &EditParams) -> ERPResult<()> {
@@ -177,6 +193,10 @@ impl CateServiceTrait for CateService {
         Ok(())
     }
 
+    async fn extract_cates(&self) -> ERPResult<()> {
+        todo!()
+    }
+
     async fn delete_cate(&self, params: &GenericDeleteParams) -> ERPResult<()> {
         let cate = sqlx::query_as!(CateModel, "select * from cates where id = $1", params.id)
             .fetch_one(self.db.get_pool())
@@ -219,17 +239,44 @@ impl CateServiceTrait for CateService {
         Ok(())
     }
 
-    async fn get_sub_cates_of(&self, parent_id: i32) -> ERPResult<Vec<CateDto>> {
-        let cates = sqlx::query_as!(
-            CateModel,
-            "select * from cates where parent_id = $1 order by index, id;",
-            parent_id
-        )
-        .fetch_all(self.db.get_pool())
-        .await?
-        .into_iter()
-        .map(|item| CateDto::from(item, None))
-        .collect::<Vec<CateDto>>();
+    async fn insert_multiple_cate1(&self, names: &[&str]) -> ERPResult<HashMap<String, i32>> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("insert into cates (index, name, cate_type, parent_id) ");
+
+        query_builder.push_values(names, |mut b, item| {
+            b.push_bind(0).push_bind(item).push_bind(0).push_bind(0);
+        });
+
+        query_builder.push(" returning *;");
+
+        let name_to_id = query_builder
+            .build_query_as::<CateModel>()
+            .fetch_all(self.db.get_pool())
+            .await?
+            .into_iter()
+            .map(|item| (item.name, item.id))
+            .collect::<HashMap<String, i32>>();
+
+        Ok(name_to_id)
+    }
+
+    async fn insert_multiple_cate2(&self, items: &[CateModel]) -> ERPResult<Vec<CateModel>> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("insert into cates (index, name, cate_type, parent_id) ");
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(item.index)
+                .push_bind(item.name.clone())
+                .push_bind(item.cate_type)
+                .push_bind(item.parent_id);
+        });
+
+        query_builder.push(" returning *;");
+
+        let cates = query_builder
+            .build_query_as::<CateModel>()
+            .fetch_all(self.db.get_pool())
+            .await?;
 
         Ok(cates)
     }

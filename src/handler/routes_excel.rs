@@ -1,8 +1,10 @@
 use crate::config::database::DatabaseTrait;
 use crate::dto::dto_excel::ItemExcelDto;
 use crate::excel::parse_items::parse_items;
+use crate::model::cates::CateModel;
 use crate::model::items::ItemsModel;
 use crate::response::api_response::APIEmptyResponse;
+use crate::service::cates_service::CateServiceTrait;
 use crate::service::item_service::ItemServiceTrait;
 use crate::state::item_state::ItemState;
 use crate::{ERPError, ERPResult};
@@ -12,7 +14,7 @@ use axum::routing::{get, post};
 use axum::Router;
 use chrono::{Datelike, Timelike, Utc};
 use rand::Rng;
-use sqlx::{Pool, Postgres};
+use std::collections::HashMap;
 use std::fs;
 
 pub fn routes() -> Router<ItemState> {
@@ -80,6 +82,9 @@ async fn import_excel(
     tracing::info!("import excel....");
     let items = parse_items(&file_path)?;
 
+    // 可能可以 只对 需要导入部分 做处理
+    let cate_data = handle_cates(&state, &items).await?;
+
     // 用barcode去重
     let barcodes = items
         .iter()
@@ -107,192 +112,213 @@ async fn import_excel(
     };
     tracing::info!("existing_barcodes: {:?}", existing_barcodes);
 
-    // let existing_goods_nos_with_color = match goods_nos.len() {
-    //     0 => vec![],
-    //     _ => sqlx::query!(
-    //         "select goods_no, color from items where goods_no = any($1)",
-    //         &goods_nos
-    //     )
-    //     .fetch_all(state.db.get_pool())
-    //     .await
-    //     .map_err(ERPError::DBError)?
-    //     .into_iter()
-    //     .map(|r| format!("{}-{}", r.goods_no, r.color))
-    //     .collect::<Vec<String>>(),
-    // };
-    // tracing::info!(
-    //     "existing_goods_nos_with_color: {:?}",
-    //     existing_goods_nos_with_color
-    // );
-    //
     let to_add_items = items
         .into_iter()
         .filter(|item| !existing_barcodes.contains(&item.barcode))
         .collect::<Vec<ItemExcelDto>>();
 
+    let empty_cate2_to_cate2_id: HashMap<String, i32> = HashMap::new();
     if !to_add_items.is_empty() {
-        let item_models = to_add_items
-            .into_iter()
-            .map(|item| ItemsModel {
+        let mut item_models = vec![];
+        for item in to_add_items {
+            let cate1_id = *cate_data
+                .existing_cate1_to_id
+                .get(&item.cates1)
+                .unwrap_or(&0);
+
+            if cate1_id == 0 {
+                return Err(ERPError::Failed(format!(
+                    "大类 {} 未成功收录",
+                    &item.cates1
+                )));
+            }
+
+            let cate2_id = *cate_data
+                .existing_cate1_id_to_cate2_to_cate2_id
+                .get(&cate1_id)
+                .unwrap_or(&empty_cate2_to_cate2_id)
+                .get(&item.cates2)
+                .unwrap_or(&0);
+
+            if cate2_id == 0 {
+                return Err(ERPError::Failed(format!(
+                    "小类 {} 未成功收录",
+                    &item.cates2
+                )));
+            }
+
+            let item_model = ItemsModel {
                 id: 0,
                 color: item.color,
-                // todo
-                cate1_id: 0,
+                cate1_id,
+                cate2_id,
                 name: item.name,
                 size: item.size,
                 unit: item.unit,
-                // todo
-                price: 0,
+                price: item.price,
                 barcode: item.barcode,
                 notes: "".to_string(),
-                images: vec![],
+                images: item.images,
                 create_time: Default::default(),
-                cate2_id: 0,
-                cost: 0,
-                number: "".to_string(),
-            })
-            .collect::<Vec<ItemsModel>>();
+                cost: item.cost,
+                number: item.number,
+            };
+
+            item_models.push(item_model)
+        }
 
         tracing::info!("insert {:?} items", item_models.len());
 
         let mut st = 0;
         let l = 1000;
-        // while st < item_models.len() {
-        //     if st + 1000 > item_models.len() {
-        //         tracing::info!("{:?} \n", &item_models[st..].len());
-        //         state
-        //             .item_service
-        //             .insert_multiple_items(&item_models[st..])
-        //             .await?;
-        //     } else {
-        //         tracing::info!("{:?} \n", &item_models[st..(st + 1000)].len());
-        //         state
-        //             .item_service
-        //             .insert_multiple_items(&item_models[st..(st + 1000)])
-        //             .await?;
-        //     }
-        //     st += l;
-        // }
+        while st < item_models.len() {
+            if st + 1000 > item_models.len() {
+                tracing::info!("{:?} \n", &item_models[st..].len());
+                state
+                    .item_service
+                    .insert_multiple_items(&item_models[st..])
+                    .await?;
+            } else {
+                tracing::info!("{:?} \n", &item_models[st..(st + 1000)].len());
+                state
+                    .item_service
+                    .insert_multiple_items(&item_models[st..(st + 1000)])
+                    .await?;
+            }
+            st += l;
+        }
     }
 
     Ok(APIEmptyResponse::new())
 }
 
-async fn handle_cates(db: &Pool<Postgres>, items: &[ItemExcelDto]) -> ERPResult<()> {
+struct CateData {
+    existing_cate1_to_id: HashMap<String, i32>,
+    existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>>,
+}
+async fn handle_cates(state: &ItemState, items: &[ItemExcelDto]) -> ERPResult<CateData> {
     // 不需要处理，只需要把cates记录到数据库里
-    todo!()
+    // todo!()
 
-    // // 先处理类别
-    // let cates = sqlx::query_as!(CateModel, "select * from cates")
-    //     .fetch_all(db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
-    //
-    // let mut existing_cate1_to_id = cates
-    //     .iter()
-    //     .filter_map(|cate| match cate.cate_type {
-    //         0 => Some((cate.name.clone(), cate.id)),
-    //         _ => None,
-    //     })
-    //     .collect::<HashMap<String, i32>>();
-    //
-    // let mut existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>> =
-    //     HashMap::new();
-    // for cate in cates.iter() {
-    //     if cate.cate_type == 0 {
-    //         continue;
-    //     }
-    //
-    //     existing_cate1_id_to_cate2_to_cate2_id
-    //         .entry(cate.parent_name)
-    //         .or_insert(HashMap::new())
-    //         .insert(cate.name.clone(), cate.id);
-    // }
-    // tracing::info!("existing existing_cate1_to_id: {:?}", existing_cate1_to_id);
-    // tracing::info!(
-    //     "existing existing_cate1_id_to_cate2_to_cate2_id: {:?}",
-    //     existing_cate1_id_to_cate2_to_cate2_id
-    // );
-    //
-    // let mut cate1_to_cate2s: HashMap<String, Vec<String>> = HashMap::new();
-    // for item in items.iter() {
-    //     // todo: 必须得有cate1，然后才有cate2
-    //     if item.cates1.is_empty() && !item.cates2.is_empty() {
-    //         return Err(ERPError::ExcelError(
-    //             "有数据，有小类，无大类，应该是有误".to_string(),
-    //         ));
-    //     }
-    //     if item.cates1.is_empty() {
-    //         continue;
-    //     }
-    //     let cate2s = cate1_to_cate2s.entry(item.cates1.clone()).or_insert(vec![]);
-    //
-    //     if !item.cates2.is_empty() && !cate2s.contains(&item.cates2) {
-    //         cate2s.push(item.cates2.clone());
-    //     }
-    // }
-    //
-    // // 添加cate1
-    // let to_add_cate1s = cate1_to_cate2s
-    //     .iter()
-    //     .filter_map(|(k, _)| {
-    //         if existing_cate1_to_id.contains_key(k) {
-    //             None
-    //         } else {
-    //             Some(k.clone())
-    //         }
-    //     })
-    //     .collect::<Vec<String>>();
-    // if !to_add_cate1s.is_empty() {
-    //     let new_cate1_to_id = CatesModel::insert_multiple_cate1(db, &to_add_cate1s).await?;
-    //     for (k, v) in new_cate1_to_id {
-    //         existing_cate1_to_id.insert(k, v);
-    //     }
-    // }
-    //
-    // let empty_hash = HashMap::new();
-    // let mut to_add_cate2s = vec![];
-    // for (cate1, cate2s) in cate1_to_cate2s.iter() {
-    //     let cate1_id = existing_cate1_to_id.get(cate1).ok_or(ERPError::ExcelError(
-    //         "有点问题，如果在次出现，找周".to_string(),
-    //     ))?;
-    //
-    //     for cate2 in cate2s {
-    //         if existing_cate1_id_to_cate2_to_cate2_id
-    //             .get(cate1_id)
-    //             .unwrap_or(&empty_hash)
-    //             .contains_key(cate2)
-    //         {
-    //             continue;
-    //         }
-    //
-    //         to_add_cate2s.push(CateModel {
-    //             id: 0,
-    //             name: cate2.to_string(),
-    //             cate_type: 1,
-    //             parent_name: *cate1_id,
-    //         })
-    //     }
-    // }
-    // if !to_add_cate2s.is_empty() {
-    //     let new_cates = CateModel::insert_multiple_cate2(db, to_add_cate2s).await?;
-    //     for new_cate in new_cates {
-    //         existing_cate1_id_to_cate2_to_cate2_id
-    //             .entry(new_cate.parent_name)
-    //             .or_insert(HashMap::new())
-    //             .insert(new_cate.name, new_cate.id);
-    //     }
-    // }
-    //
-    // tracing::info!("cate1_to_cate2s: {:?}", cate1_to_cate2s);
-    // tracing::info!("existing_cate1_to_id: {:?}", existing_cate1_to_id);
-    // tracing::info!(
-    //     "existing_cate1_id_to_cate2_to_cate2_id: {:?}",
-    //     existing_cate1_id_to_cate2_to_cate2_id
-    // );
-    //
-    // Ok(CateData {
-    //     existing_cate1_to_id,
-    //     existing_cate1_id_to_cate2_to_cate2_id,
-    // })
+    // 先处理类别
+    let cates = sqlx::query_as!(CateModel, "select * from cates")
+        .fetch_all(state.db.get_pool())
+        .await
+        .map_err(ERPError::DBError)?;
+
+    let mut existing_cate1_to_id = cates
+        .iter()
+        .filter_map(|cate| match cate.cate_type {
+            0 => Some((cate.name.clone(), cate.id)),
+            _ => None,
+        })
+        .collect::<HashMap<String, i32>>();
+
+    let mut existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>> =
+        HashMap::new();
+    for cate in cates.iter() {
+        if cate.cate_type == 0 {
+            continue;
+        }
+
+        existing_cate1_id_to_cate2_to_cate2_id
+            .entry(cate.parent_id)
+            .or_insert(HashMap::new())
+            .insert(cate.name.clone(), cate.id);
+    }
+    tracing::info!("existing existing_cate1_to_id: {:?}", existing_cate1_to_id);
+    tracing::info!(
+        "existing existing_cate1_id_to_cate2_to_cate2_id: {:?}",
+        existing_cate1_id_to_cate2_to_cate2_id
+    );
+
+    let mut cate1_to_cate2s: HashMap<String, Vec<String>> = HashMap::new();
+    for item in items.iter() {
+        // todo: 必须得有cate1，然后才有cate2
+        if item.cates1.is_empty() && !item.cates2.is_empty() {
+            return Err(ERPError::ExcelError(
+                "有数据，有小类，无大类，应该是有误".to_string(),
+            ));
+        }
+        if item.cates1.is_empty() {
+            continue;
+        }
+        let cate2s = cate1_to_cate2s.entry(item.cates1.clone()).or_insert(vec![]);
+
+        if !item.cates2.is_empty() && !cate2s.contains(&item.cates2) {
+            cate2s.push(item.cates2.clone());
+        }
+    }
+
+    // 添加cate1
+    let to_add_cate1s = cate1_to_cate2s
+        .iter()
+        .filter_map(|(k, _)| {
+            if existing_cate1_to_id.contains_key(k) {
+                None
+            } else {
+                Some(k.as_str())
+            }
+        })
+        .collect::<Vec<&str>>();
+    if !to_add_cate1s.is_empty() {
+        let new_cate1_to_id = state
+            .cate_service
+            .insert_multiple_cate1(&to_add_cate1s)
+            .await?;
+        for (k, v) in new_cate1_to_id {
+            existing_cate1_to_id.insert(k, v);
+        }
+    }
+
+    let empty_hash = HashMap::new();
+    let mut to_add_cate2s = vec![];
+    for (cate1, cate2s) in cate1_to_cate2s.iter() {
+        let cate1_id = existing_cate1_to_id.get(cate1).ok_or(ERPError::ExcelError(
+            "有点问题，如果在次出现，找周".to_string(),
+        ))?;
+
+        for cate2 in cate2s {
+            if existing_cate1_id_to_cate2_to_cate2_id
+                .get(cate1_id)
+                .unwrap_or(&empty_hash)
+                .contains_key(cate2)
+            {
+                continue;
+            }
+
+            to_add_cate2s.push(CateModel {
+                id: 0,
+                index: 0,
+                name: cate2.to_string(),
+                cate_type: 1,
+                parent_id: *cate1_id,
+                create_time: Default::default(),
+            })
+        }
+    }
+    if !to_add_cate2s.is_empty() {
+        let new_cates = state
+            .cate_service
+            .insert_multiple_cate2(&to_add_cate2s)
+            .await?;
+        for new_cate in new_cates {
+            existing_cate1_id_to_cate2_to_cate2_id
+                .entry(new_cate.parent_id)
+                .or_insert(HashMap::new())
+                .insert(new_cate.name, new_cate.id);
+        }
+    }
+
+    tracing::info!("cate1_to_cate2s: {:?}", cate1_to_cate2s);
+    tracing::info!("existing_cate1_to_id: {:?}", existing_cate1_to_id);
+    tracing::info!(
+        "existing_cate1_id_to_cate2_to_cate2_id: {:?}",
+        existing_cate1_id_to_cate2_to_cate2_id
+    );
+
+    Ok(CateData {
+        existing_cate1_to_id,
+        existing_cate1_id_to_cate2_to_cate2_id,
+    })
 }

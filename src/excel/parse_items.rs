@@ -28,13 +28,16 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
     let mut items = vec![];
 
     // 从第2行开始
-    for i in 2..rows {
+    for i in 2..rows + 1 {
+        print!("row: {}", i);
+
         let mut cur = ItemExcelDto::default();
 
         let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
             if j == 1 {
                 images = items_sheet.get_images((j, i));
+                print!("images count: {}", images.len());
             }
 
             let cell = items_sheet.get_cell((j, i));
@@ -69,18 +72,18 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
         // if cur.
         if cur.barcode.is_empty() {}
 
-        // let mut image_urls = vec![];
-        // if !images.is_empty() {
-        //     for (index, real_goods_image) in images.into_iter().enumerate() {
-        //         let sku_image_name = format!("{}-{}-{}.png", , index, order_no);
-        //         let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
-        //         real_goods_image.download_image(&goods_image_path);
-        //         image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
-        //     }
-        // }
-        // cur. = image_urls;
+        let mut image_urls = vec![];
+        if !images.is_empty() {
+            for (index, real_goods_image) in images.into_iter().enumerate() {
+                let sku_image_name = format!("{}-{}.png", cur.barcode, index);
+                let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+                real_goods_image.download_image(&goods_image_path);
+                image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+            }
+        }
+        cur.images = image_urls;
 
-        // tracing::info!("rows#{:?}: {:?}", i, cur);
+        tracing::info!("rows#{:?}: {:?}", i, cur);
         items.push(cur);
     }
 

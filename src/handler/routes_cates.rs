@@ -15,7 +15,7 @@ pub fn routes() -> Router<CateState> {
         .route("/api/cates/sub/cates", get(api_sub_cates_list))
         .route("/api/edit/cates", post(api_edit_cate))
         .route("/api/edit/cates2", post(api_edit_cate))
-        .route("/api/delete/cates", post(api_cates_list))
+        .route("/api/delete/cates", post(api_delete_cate))
 }
 
 async fn api_cates_list(State(state): State<CateState>) -> ERPResult<APIListResponse<CateDto>> {

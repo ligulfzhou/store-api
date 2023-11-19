@@ -1,5 +1,6 @@
 use crate::config::database::{Database, DatabaseTrait};
-use crate::dto::dto_cates::{CateDto, DeleteParams, EditParams};
+use crate::dto::dto_cates::{CateDto, EditParams};
+use crate::dto::GenericDeleteParams;
 use crate::model::cates::CateModel;
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
@@ -22,7 +23,7 @@ pub trait CateServiceTrait {
 
     async fn extract_cates(&self) -> ERPResult<()>;
 
-    async fn delete_cate(&self, params: &DeleteParams) -> ERPResult<()>;
+    async fn delete_cate(&self, params: &GenericDeleteParams) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -176,7 +177,7 @@ impl CateServiceTrait for CateService {
         Ok(())
     }
 
-    async fn delete_cate(&self, params: &DeleteParams) -> ERPResult<()> {
+    async fn delete_cate(&self, params: &GenericDeleteParams) -> ERPResult<()> {
         let cate = sqlx::query_as!(CateModel, "select * from cates where id = $1", params.id)
             .fetch_one(self.db.get_pool())
             .await?;

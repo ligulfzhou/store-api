@@ -57,17 +57,17 @@ impl SettingsServiceTrait for SettingsService {
                 }
 
                 // 检查 数值 是否已经存在
-                if !existing
-                    .iter()
-                    .filter(|&item| item.value == params.value)
-                    .collect::<Vec<&ColorSettingsModel>>()
-                    .is_empty()
-                {
-                    return Err(ERPError::AlreadyExists(format!(
-                        "值为{:?}的已经存在",
-                        params.value
-                    )));
-                }
+                // if !existing
+                //     .iter()
+                //     .filter(|&item| item.value == params.value)
+                //     .collect::<Vec<&ColorSettingsModel>>()
+                //     .is_empty()
+                // {
+                //     return Err(ERPError::AlreadyExists(format!(
+                //         "值为{:?}的已经存在",
+                //         params.value
+                //     )));
+                // }
 
                 sqlx::query!(
                     "insert into color_settings (color, value) values ($1, $2)",
@@ -91,17 +91,17 @@ impl SettingsServiceTrait for SettingsService {
                 }
 
                 // 检查 数值 是否已经存在
-                if !existing
-                    .iter()
-                    .filter(|&item| item.value == params.value && item.id != params.id)
-                    .collect::<Vec<&ColorSettingsModel>>()
-                    .is_empty()
-                {
-                    return Err(ERPError::AlreadyExists(format!(
-                        "值为{:?}的已经存在",
-                        params.value
-                    )));
-                }
+                // if !existing
+                //     .iter()
+                //     .filter(|&item| item.value == params.value && item.id != params.id)
+                //     .collect::<Vec<&ColorSettingsModel>>()
+                //     .is_empty()
+                // {
+                //     return Err(ERPError::AlreadyExists(format!(
+                //         "值为{:?}的已经存在",
+                //         params.value
+                //     )));
+                // }
 
                 sqlx::query!(
                     "update color_settings set color=$1, value=$2 where id = $3",

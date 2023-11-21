@@ -9,3 +9,4 @@ drop table if exists order_items;
 drop table if exists global_settings;
 drop table if exists color_settings;
 drop table if exists customer_types;
+drop table if exists embryos;

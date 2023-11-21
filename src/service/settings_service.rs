@@ -1,11 +1,15 @@
 use crate::config::database::{Database, DatabaseTrait};
-use crate::dto::dto_settings::{ColorEditParams, GlobalSettingsUpdateParams};
+use crate::dto::dto_settings::{
+    ColorEditParams, CustomerTypeEditParams, GlobalSettingsUpdateParams,
+};
 use crate::dto::GenericDeleteParams;
-use crate::model::settings::{ColorSettingsModel, GlobalSettingsModel};
+use crate::model::customer::CustomerModel;
+use crate::model::settings::{ColorSettingsModel, CustomerTypeModel, GlobalSettingsModel};
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
 use std::sync::Arc;
+use tracing_subscriber::fmt::format;
 
 #[derive(Clone)]
 pub struct SettingsService {
@@ -21,6 +25,10 @@ pub trait SettingsServiceTrait {
     async fn delete_color_to_value(&self, params: &GenericDeleteParams) -> ERPResult<()>;
     async fn get_global_settings(&self) -> ERPResult<GlobalSettingsModel>;
     async fn update_global_settings(&self, params: &GlobalSettingsUpdateParams) -> ERPResult<()>;
+
+    async fn get_customer_types(&self) -> ERPResult<Vec<CustomerTypeModel>>;
+    async fn edit_customer_type(&self, params: &CustomerTypeEditParams) -> ERPResult<()>;
+    async fn delete_customer_type(&self, params: &GenericDeleteParams) -> ERPResult<()>;
 }
 #[async_trait]
 impl SettingsServiceTrait for SettingsService {
@@ -148,6 +156,83 @@ impl SettingsServiceTrait for SettingsService {
         }
 
         sql.build().execute(self.db.get_pool()).await?;
+
+        Ok(())
+    }
+
+    async fn get_customer_types(&self) -> ERPResult<Vec<CustomerTypeModel>> {
+        let customer_types = sqlx::query_as!(
+            CustomerTypeModel,
+            "select * from customer_types order by id"
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        Ok(customer_types)
+    }
+
+    async fn edit_customer_type(&self, params: &CustomerTypeEditParams) -> ERPResult<()> {
+        let customer_types = self.get_customer_types().await?;
+        if !customer_types
+            .iter()
+            .filter(|item| item.id != params.id && item.ty_pe == params.ty_pe)
+            .collect::<Vec<_>>()
+            .is_empty()
+        {
+            return Err(ERPError::AlreadyExists(format!(
+                "客户类型名: {} 已存在",
+                params.ty_pe
+            )));
+        }
+
+        match params.id {
+            0 => {
+                // insert
+                sqlx::query!(
+                    "insert into customer_types (ty_pe) values ($1)",
+                    params.ty_pe
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+            _ => {
+                // update
+                sqlx::query!(
+                    "update customer_types set ty_pe=$1 where id=$2",
+                    params.ty_pe,
+                    params.id
+                )
+                .execute(self.db.get_pool())
+                .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn delete_customer_type(&self, params: &GenericDeleteParams) -> ERPResult<()> {
+        let _ = sqlx::query_as!(
+            CustomerTypeModel,
+            "select * from customer_types where id=$1",
+            params.id
+        )
+        .fetch_one(self.db.get_pool())
+        .await
+        .map_err(|err| ERPError::NotFound("数据不存在，请刷新".to_string()));
+
+        if sqlx::query!("select count(1) from customers where id = $1", params.id)
+            .fetch_one(self.db.get_pool())
+            .await?
+            .count
+            .unwrap_or(0)
+            > 0
+        {
+            return Err(ERPError::Failed("删除不合法，有对应的客户存在".to_string()));
+        }
+
+        sqlx::query!("delete from customer_types where id = $1", params.id)
+            .execute(self.db.get_pool())
+            .await?;
 
         Ok(())
     }

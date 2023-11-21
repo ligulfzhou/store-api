@@ -14,3 +14,10 @@ pub struct ColorSettingsModel {
     pub value: i32,
     pub create_time: NaiveDateTime, // 父类ID
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct CustomerTypeModel {
+    pub id: i32,
+    pub ty_pe: String,
+    pub create_time: NaiveDateTime, // 父类ID
+}

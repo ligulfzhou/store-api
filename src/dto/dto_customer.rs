@@ -1,12 +1,14 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::model::customer::CustomerModel;
 use chrono::{NaiveDate, NaiveDateTime};
+use sqlx::FromRow;
 use std::ops::Deref;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct CustomerDto {
     pub id: i32,
     pub ty_pe: i32,
+    pub customer_type: String,
     pub name: String,
     pub head: String,
     pub address: String,
@@ -18,10 +20,11 @@ pub struct CustomerDto {
 }
 
 impl CustomerDto {
-    pub fn from(customer: CustomerModel) -> CustomerDto {
+    pub fn from(customer: CustomerModel, customer_type: &str) -> CustomerDto {
         Self {
             id: customer.id,
             ty_pe: customer.ty_pe,
+            customer_type: customer_type.to_string(),
             name: customer.name,
             head: customer.head,
             address: customer.address,

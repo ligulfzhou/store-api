@@ -3,6 +3,7 @@ extern crate serde;
 #[macro_use]
 extern crate lazy_static;
 
+pub use self::error::{ERPError, ERPResult};
 use crate::config::database::DatabaseTrait;
 use crate::config::{database, parameter};
 use std::net::SocketAddr;
@@ -21,8 +22,6 @@ mod repository;
 mod response;
 mod service;
 mod state;
-
-pub use self::error::{ERPError, ERPResult};
 
 #[tokio::main]
 async fn main() {

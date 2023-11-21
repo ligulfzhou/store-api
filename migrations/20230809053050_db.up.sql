@@ -48,6 +48,19 @@ create index idx_items_number on items (number);
 create index idx_items_barcode on items (barcode);
 create index idx_tems_cates on items (cate1_id, cate2_id);
 
+-- 库存胚
+create table embryos
+(
+    id          serial PRIMARY KEY,
+    images      text[] not null default '{}',    -- 商品图片
+    name        text      not null default '',   -- 名称
+    color       text      not null default '',   -- 颜色
+    unit        text      not null default '',   -- 单位
+    notes       text      not null default '',   -- 备注
+    number      text      not null default '',   -- 编号
+    create_time TIMESTAMP not null default now() -- 创建时间
+);
+
 -- 账号
 create table accounts
 (
@@ -93,7 +106,8 @@ create table global_settings
     accounts text[] not null default '{}'  -- 收款账号
 );
 
-insert into global_settings (units, accounts) values ('{}', '{}');
+insert into global_settings (units, accounts)
+values ('{}', '{}');
 
 create table color_settings
 (
@@ -102,12 +116,18 @@ create table color_settings
     value       integer   not null default 0,
     create_time TIMESTAMP not null default now() -- 创建时间
 );
+create unique index uniq_color_setting_color on color_settings (color);
 insert into color_settings(color, value)
-values ('金', 1),
+values ('14K金', 1),
+       ('18K金', 1),
        ('钢', 2);
+
 
 create table customer_types
 (
-    id            serial PRIMARY KEY,
-    customer_type text not null default ''
+    id serial PRIMARY KEY,
+    ty_pe text not null default '',
+    create_time timestamp not null default now()
 );
+create unique index uniq_customer_types_type on customer_types (ty_pe);
+insert into customer_types (ty_pe) values ('普通客户'), ('VIP客户');

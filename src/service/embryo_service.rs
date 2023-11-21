@@ -1,6 +1,7 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_items::{DeleteParams, EditParams, QueryParams};
+use crate::dto::dto_embryo::{DeleteParams, EditParams, QueryParams};
+use crate::model::embryo::EmbryoModel;
 use crate::model::items::ItemsModel;
 use crate::ERPResult;
 use async_trait::async_trait;
@@ -20,7 +21,7 @@ pub trait EmbryoServiceTrait {
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
-    async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()>;
+    async fn insert_multiple_items(&self, rows: &[EmbryoModel]) -> ERPResult<Vec<EmbryoModel>>;
 }
 
 #[async_trait]
@@ -28,36 +29,25 @@ impl EmbryoServiceTrait for EmbryoService {
     fn new(db: &Arc<Database>) -> Self {
         Self { db: Arc::clone(db) }
     }
-
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>> {
-        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from items ");
+        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from embryos ");
         if !params.is_empty() {
             let mut and = "";
-            if !params.brand.is_empty() {
-                sql.push(&format!("{} brand= ", and))
-                    .push_bind(params.brand.deref());
-                and = " and ";
-            }
-
-            if !params.cates1.is_empty() {
-                sql.push(&format!("{} cates1= ", and))
-                    .push_bind(params.cates1.deref());
-                and = " and ";
-            }
-
-            if !params.cates2.is_empty() {
-                sql.push(&format!("{} cates2= ", and))
-                    .push_bind(params.cates2.deref());
-                and = " and ";
-            }
-            if !params.goods_no.is_empty() {
-                sql.push(&format!("{} goods_no= ", and))
-                    .push_bind(params.goods_no.deref());
-                and = " and ";
-            }
             if !params.name.is_empty() {
                 sql.push(&format!("{} name= ", and))
                     .push_bind(params.name.deref());
+                and = " and ";
+            }
+
+            if !params.number.is_empty() {
+                sql.push(&format!("{} number= ", and))
+                    .push_bind(params.number.deref());
+                and = " and ";
+            }
+
+            if !params.color.is_empty() {
+                sql.push(&format!("{} color= ", and))
+                    .push_bind(params.color.deref());
                 and = " and ";
             }
         }
@@ -82,34 +72,24 @@ impl EmbryoServiceTrait for EmbryoService {
     }
 
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32> {
-        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from items ");
+        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from embryos ");
         if !params.is_empty() {
             let mut and = "";
-            if !params.brand.is_empty() {
-                sql.push(&format!("{} brand= ", and))
-                    .push_bind(params.brand.deref());
-                and = " and ";
-            }
-
-            if !params.cates1.is_empty() {
-                sql.push(&format!("{} cates1= ", and))
-                    .push_bind(params.cates1.deref());
-                and = " and ";
-            }
-
-            if !params.cates2.is_empty() {
-                sql.push(&format!("{} cates2= ", and))
-                    .push_bind(params.cates2.deref());
-                and = " and ";
-            }
-            if !params.goods_no.is_empty() {
-                sql.push(&format!("{} goods_no= ", and))
-                    .push_bind(params.goods_no.deref());
-                and = " and ";
-            }
             if !params.name.is_empty() {
                 sql.push(&format!("{} name= ", and))
                     .push_bind(params.name.deref());
+                and = " and ";
+            }
+
+            if !params.number.is_empty() {
+                sql.push(&format!("{} number= ", and))
+                    .push_bind(params.number.deref());
+                and = " and ";
+            }
+
+            if !params.color.is_empty() {
+                sql.push(&format!("{} color= ", and))
+                    .push_bind(params.color.deref());
                 and = " and ";
             }
         }
@@ -129,22 +109,15 @@ impl EmbryoServiceTrait for EmbryoService {
                 // 新增item
                 sqlx::query!(
                     r#"
-                    insert into items (images, name, size, color, cate1_id, cate2_id, unit,
-                     price, cost, notes, number, barcode)
-                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+                    insert into embryos (images, name, color, unit, number, notes)
+                    values ($1, $2, $3, $4, $5, $6);
                     "#,
                     &params.images,
                     params.name,
-                    params.size,
                     params.color,
-                    params.cate1_id,
-                    params.cate2_id,
                     params.unit,
-                    &params.price,
-                    params.cost,
-                    params.notes,
                     params.number,
-                    params.barcode,
+                    params.notes,
                 )
                 .execute(self.db.get_pool())
                 .await?;
@@ -153,25 +126,19 @@ impl EmbryoServiceTrait for EmbryoService {
                 // 修改item
                 sqlx::query!(
                     r#"
-                    update items set images=$1, name=$2, size=$3, color=$4, cate1_id=$5, cate2_id=$6,
-                     unit=$7, price=$8, cost=$9, notes=$10, number=$11, barcode=$12
-                    where id=$13"#,
+                    update embryos set images=$1, name=$2, color=$3, unit=$4, number=$5, notes=$6
+                    where id=$7
+                    "#,
                     &params.images,
                     params.name,
-                    params.size,
                     params.color,
-                    params.cate1_id,
-                    params.cate2_id,
                     params.unit,
-                    &params.price,
-                    params.cost,
-                    params.notes,
                     params.number,
-                    params.barcode,
+                    params.notes,
                     params.id,
                 )
-                    .execute(self.db.get_pool())
-                    .await?;
+                .execute(self.db.get_pool())
+                .await?;
             }
         };
 
@@ -179,7 +146,7 @@ impl EmbryoServiceTrait for EmbryoService {
     }
 
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()> {
-        sqlx::query!("delete from items where id = $1", params.id)
+        sqlx::query!("delete from embryos where id = $1", params.id)
             .execute(self.db.get_pool())
             .await?;
 
@@ -187,29 +154,26 @@ impl EmbryoServiceTrait for EmbryoService {
     }
 
     // todo
-    async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()> {
+    async fn insert_multiple_items(&self, rows: &[EmbryoModel]) -> ERPResult<Vec<EmbryoModel>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into items (images, name, size, color, cate1_id, cate2_id, unit, price, cost, notes, number, barcode) ");
+            QueryBuilder::new("insert into embryos (images, name,  color, unit, number, notes)");
 
         query_builder.push_values(rows, |mut b, item| {
             b.push_bind(item.images.clone())
                 .push_bind(item.name.clone())
-                .push_bind(item.size.clone())
                 .push_bind(item.color.clone())
-                .push_bind(item.cate1_id)
-                .push_bind(item.cate2_id)
                 .push_bind(item.unit.clone())
-                .push_bind(item.price)
-                .push_bind(item.cost)
-                .push_bind(item.notes.clone())
                 .push_bind(item.number.clone())
-                .push_bind(item.barcode.clone());
+                .push_bind(item.notes.clone());
         });
 
-        query_builder.push(" returning id;");
+        query_builder.push(" returning *;");
 
-        query_builder.build().execute(self.db.get_pool()).await?;
+        let embryos = query_builder
+            .build_query_as::<EmbryoModel>()
+            .fetch_all(self.db.get_pool())
+            .await?;
 
-        Ok(())
+        Ok(embryos)
     }
 }

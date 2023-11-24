@@ -1,9 +1,34 @@
+use crate::model::items::ItemsModel;
+use chrono::NaiveDateTime;
+
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct ItemsDto {
+    pub id: i32,
+    pub images: Vec<String>,        // 商品图片
+    pub name: String,               // 产品名称
+    pub size: String,               // 规格
+    pub color: String,              // 颜色
+    pub cate1_id: i32,              // 大类ID
+    pub cate1: String,              // 大类名
+    pub cate2_id: i32,              // 小类ID
+    pub cate2: String,              // 小类名
+    pub unit: String,               // 单位
+    pub price: i32,                 // 标准售价
+    pub cost: i32,                  // 成本
+    pub notes: String,              // 备注
+    pub number: String,             // 货号
+    pub barcode: String,            // 条码
+    pub create_time: NaiveDateTime, // 创建时间
+}
+
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
     // todo: more fields
-    pub brand: String,    // 品牌
-    pub cates1: String,   // 产品大类
-    pub cates2: String,   // 产品小类
+    pub brand: String, // 品牌
+    // pub cates1: String, // 产品大类
+    // pub cates2: String, // 产品小类
+    pub cate1_id: i32,
+    pub cate2_id: i32,
     pub goods_no: String, // 货号
     pub name: String,     // 产品名称
 
@@ -16,7 +41,7 @@ impl QueryParams {
         if !self.brand.is_empty() {
             return false;
         }
-        if !self.cates1.is_empty() || !self.cates2.is_empty() {
+        if self.cate1_id != 0 || self.cate2_id != 0 {
             return false;
         }
 

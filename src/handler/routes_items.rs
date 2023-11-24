@@ -1,5 +1,4 @@
-use crate::dto::dto_items::{DeleteParams, EditParams, QueryParams};
-use crate::model::items::ItemsModel;
+use crate::dto::dto_items::{DeleteParams, EditParams, ItemsDto, QueryParams};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::item_service::ItemServiceTrait;
 use crate::state::item_state::ItemState;
@@ -19,10 +18,11 @@ pub fn routes() -> Router<ItemState> {
 async fn api_item_list(
     State(state): State<ItemState>,
     WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
-) -> ERPResult<APIListResponse<ItemsModel>> {
+) -> ERPResult<APIListResponse<ItemsDto>> {
     let items = state.item_service.get_item_list(&params).await?;
+    let items_dto = state.item_service.to_items_dto(items).await?;
     let count = state.item_service.get_item_count(&params).await?;
-    Ok(APIListResponse::new(items, count))
+    Ok(APIListResponse::new(items_dto, count))
 }
 
 async fn api_item_edit(

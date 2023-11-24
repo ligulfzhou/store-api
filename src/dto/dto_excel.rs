@@ -14,4 +14,5 @@ pub struct ItemExcelDto {
     pub price: i32,          // 标准售价
     pub cost: i32,           // 进货价
     pub notes: String,       // 备注
+    pub count: i32,          // 数量
 }

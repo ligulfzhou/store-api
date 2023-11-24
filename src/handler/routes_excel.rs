@@ -82,7 +82,10 @@ async fn import_excel(
     tracing::info!("import excel....");
     let items = parse_items(&file_path)?;
 
-    // 可能可以 只对 需要导入部分 做处理
+    // 检查数据的正确性
+    check_if_excel_data_valid(&state, &items).await?;
+
+    // 对未出现过的 类别，入库(并返回所有的类别）
     let cate_data = handle_cates(&state, &items).await?;
 
     // 用barcode去重
@@ -190,6 +193,16 @@ async fn import_excel(
     }
 
     Ok(APIEmptyResponse::new())
+}
+
+async fn check_if_excel_data_valid(state: &ItemState, items: &[ItemExcelDto]) -> ERPResult<bool> {
+    // 不能为空的字段，图片（可多张），名称，颜色，大类，单位，售价，成本，编号
+
+    // 编号必须是6位
+
+    // 颜色必须预先录入
+
+    Ok(true)
 }
 
 struct CateData {

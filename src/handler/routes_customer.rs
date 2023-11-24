@@ -1,8 +1,7 @@
 use crate::dto::dto_customer::{
     CustomerDeleteParam, CustomerDto, CustomerEditParam, CustomerSearchParam,
 };
-use crate::model::customer::CustomerModel;
-use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
+use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::customer_service::CustomerServiceTrait;
 use crate::service::settings_service::SettingsServiceTrait;
 use crate::state::customer_state::CustomerState;

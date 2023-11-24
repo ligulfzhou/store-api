@@ -1,5 +1,4 @@
 use crate::constants::STEP_TO_DEPARTMENT;
-use crate::model::customer::CustomerModel;
 use crate::model::order::OrderModel;
 use chrono::NaiveDate;
 use sqlx::FromRow;
@@ -16,17 +15,6 @@ pub struct OrderDto {
 }
 
 impl OrderDto {
-    pub fn from(order: OrderModel, customer: CustomerModel) -> OrderDto {
-        Self {
-            id: order.id,
-            order_no: order.order_no,
-            order_date: order.order_date,
-            delivery_date: order.delivery_date,
-            is_return_order: order.is_return_order,
-            is_urgent: order.is_urgent,
-        }
-    }
-
     pub fn from_only(order: OrderModel) -> OrderDto {
         Self {
             id: order.id,

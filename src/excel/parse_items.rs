@@ -4,21 +4,11 @@ use crate::{ERPError, ERPResult};
 use umya_spreadsheet::*;
 
 /*
-图片（可多张）
-名称
-颜色
-类别（大类)
-类别 (小类）
-规格
-单位
-售价
-成本
-备注（可空）
-编号（6位数字，688001，688002...)
+图片（可多张）,名称,颜色,类别（大类),类别 (小类）,规格,单位,售价,成本,备注（可空）,编号（6位数字，688001，688002...)
 */
 pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
     let path = std::path::Path::new(file_path);
-    let mut sheets = reader::xlsx::read(path).unwrap();
+    let sheets = reader::xlsx::read(path).unwrap();
     let items_sheet = sheets
         .get_sheet(&0)
         .map_err(|_| ERPError::ExcelError("商品sheet未找到".to_string()))?;
@@ -52,6 +42,15 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
                 continue;
             }
 
+            if j == 13 {
+                tracing::info!("cell_value: {}", cell_value);
+
+                let count = cell_value.parse::<i32>().unwrap_or(0);
+                if count == 0 {
+                    return Err(ERPError::ExcelError(format!("第{}行的数量栏为空/0", i)));
+                }
+            }
+
             match j {
                 // 1 => cur.name = cell_value.trim().to_string(),
                 2 => cur.name = cell_value.trim().to_string(),
@@ -65,6 +64,7 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
                 10 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 11 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 12 => cur.notes = cell_value.trim().to_string(),
+                13 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
                 _ => {}
             }
         }

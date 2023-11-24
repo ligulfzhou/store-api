@@ -3,13 +3,11 @@ use crate::dto::dto_settings::{
     ColorEditParams, CustomerTypeEditParams, GlobalSettingsUpdateParams,
 };
 use crate::dto::GenericDeleteParams;
-use crate::model::customer::CustomerModel;
 use crate::model::settings::{ColorSettingsModel, CustomerTypeModel, GlobalSettingsModel};
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
 use std::sync::Arc;
-use tracing_subscriber::fmt::format;
 
 #[derive(Clone)]
 pub struct SettingsService {
@@ -218,7 +216,7 @@ impl SettingsServiceTrait for SettingsService {
         )
         .fetch_one(self.db.get_pool())
         .await
-        .map_err(|err| ERPError::NotFound("数据不存在，请刷新".to_string()));
+        .map_err(|_err| ERPError::NotFound("数据不存在，请刷新".to_string()));
 
         if sqlx::query!("select count(1) from customers where id = $1", params.id)
             .fetch_one(self.db.get_pool())

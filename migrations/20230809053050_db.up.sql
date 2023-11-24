@@ -46,7 +46,22 @@ create table items
 );
 create index idx_items_number on items (number);
 create index idx_items_barcode on items (barcode);
-create index idx_tems_cates on items (cate1_id, cate2_id);
+create index idx_items_cates on items (cate1_id, cate2_id);
+
+create table item_inout
+(
+    id                serial PRIMARY KEY,
+    account_id        integer   not null default 0,
+    item_id           integer   not null default 0,
+    count             integer   not null default 0,
+    in_true_out_false bool      not null default true,
+    via               text      not null default '', -- form/excel/order
+    order_id          integer   not null default 0,
+    create_time       TIMESTAMP not null default now()
+);
+
+create index idx_item_inout_account_create_time on item_inout (account_id);
+
 
 -- 库存胚
 create table embryos
@@ -61,6 +76,19 @@ create table embryos
     create_time TIMESTAMP not null default now() -- 创建时间
 );
 
+
+create table embryo_inout
+(
+    id                serial PRIMARY KEY,
+    account_id        integer   not null default 0,
+    embryo_id         integer   not null default 0,
+    count             integer   not null default 0,
+    in_true_out_false bool      not null default true,
+    via               text      not null default '', -- form/excel
+    create_time       TIMESTAMP not null default now()
+);
+
+
 -- 账号
 create table accounts
 (
@@ -70,6 +98,8 @@ create table accounts
     password    text      not null default '',
     create_time TIMESTAMP not null default now() -- 创建时间
 );
+
+-- todo: test
 insert into accounts (name, account, password)
 values ('测试账号', 'test', 'test');
 
@@ -106,8 +136,9 @@ create table global_settings
     accounts text[] not null default '{}'  -- 收款账号
 );
 
+-- todo: test
 insert into global_settings (units, accounts)
-values ('{}', '{}');
+values (ARRAY['个', '串', '只', '支'], ARRAY['现金', '支付宝', '微信', '银行卡']);
 
 create table color_settings
 (
@@ -118,16 +149,19 @@ create table color_settings
 );
 create unique index uniq_color_setting_color on color_settings (color);
 insert into color_settings(color, value)
-values ('14K金', 1),
+values ('金', 1),
+       ('14K金', 1),
        ('18K金', 1),
        ('钢', 2);
 
 
 create table customer_types
 (
-    id serial PRIMARY KEY,
-    ty_pe text not null default '',
+    id          serial PRIMARY KEY,
+    ty_pe       text      not null default '',
     create_time timestamp not null default now()
 );
 create unique index uniq_customer_types_type on customer_types (ty_pe);
-insert into customer_types (ty_pe) values ('普通客户'), ('VIP客户');
+insert into customer_types (ty_pe)
+values ('普通客户'),
+       ('VIP客户');

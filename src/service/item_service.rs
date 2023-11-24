@@ -1,10 +1,12 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_items::{DeleteParams, EditParams, QueryParams};
+use crate::dto::dto_items::{DeleteParams, EditParams, ItemsDto, QueryParams};
+use crate::model::cates::CateModel;
 use crate::model::items::ItemsModel;
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -21,6 +23,7 @@ pub trait ItemServiceTrait {
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<()>;
+    async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>>;
 }
 
 #[async_trait]
@@ -38,14 +41,14 @@ impl ItemServiceTrait for ItemService {
                     .push_bind(params.brand.deref());
                 and = " and ";
             }
-            if !params.cates1.is_empty() {
-                sql.push(&format!("{} cates1= ", and))
-                    .push_bind(params.cates1.deref());
+            if params.cate1_id != 0 {
+                sql.push(&format!("{} cate1_id = ", and))
+                    .push_bind(params.cate1_id);
                 and = " and ";
             }
-            if !params.cates2.is_empty() {
-                sql.push(&format!("{} cates2= ", and))
-                    .push_bind(params.cates2.deref());
+            if params.cate2_id != 0 {
+                sql.push(&format!("{} cate2_id = ", and))
+                    .push_bind(params.cate2_id);
                 and = " and ";
             }
             if !params.goods_no.is_empty() {
@@ -88,17 +91,17 @@ impl ItemServiceTrait for ItemService {
                 and = " and ";
             }
 
-            if !params.cates1.is_empty() {
-                sql.push(&format!("{} cates1= ", and))
-                    .push_bind(params.cates1.deref());
+            if params.cate1_id != 0 {
+                sql.push(&format!("{} cate1_id = ", and))
+                    .push_bind(params.cate1_id);
+                and = " and ";
+            }
+            if params.cate2_id != 0 {
+                sql.push(&format!("{} cate2_id = ", and))
+                    .push_bind(params.cate2_id);
                 and = " and ";
             }
 
-            if !params.cates2.is_empty() {
-                sql.push(&format!("{} cates2= ", and))
-                    .push_bind(params.cates2.deref());
-                and = " and ";
-            }
             if !params.goods_no.is_empty() {
                 sql.push(&format!("{} goods_no= ", and))
                     .push_bind(params.goods_no.deref());
@@ -208,5 +211,42 @@ impl ItemServiceTrait for ItemService {
         query_builder.build().execute(self.db.get_pool()).await?;
 
         Ok(())
+    }
+
+    async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>> {
+        let cate_id_to_name = sqlx::query!("select id, name from cates")
+            .fetch_all(self.db.get_pool())
+            .await?
+            .into_iter()
+            .map(|item| (item.id, item.name))
+            .collect::<HashMap<_, _>>();
+        let empty = "".to_string();
+        let items_dto = items
+            .into_iter()
+            .map(|item| {
+                let cate1 = cate_id_to_name.get(&item.cate1_id).unwrap_or(&empty);
+                let cate2 = cate_id_to_name.get(&item.cate2_id).unwrap_or(&empty);
+                ItemsDto {
+                    id: item.id,
+                    images: item.images,
+                    name: item.name,
+                    size: item.size,
+                    color: item.color,
+                    cate1_id: item.cate1_id,
+                    cate1: cate1.clone(),
+                    cate2_id: item.cate2_id,
+                    cate2: cate2.clone(),
+                    unit: item.unit,
+                    price: item.price,
+                    cost: item.cost,
+                    notes: item.notes,
+                    number: item.number,
+                    barcode: item.barcode,
+                    create_time: item.create_time,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        Ok(items_dto)
     }
 }

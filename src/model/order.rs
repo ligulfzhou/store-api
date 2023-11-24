@@ -55,7 +55,6 @@ pub struct OrderItemModel {
     pub sku_id: i32,
     pub count: i32,
     pub unit: Option<String>,
-    // pub purchase_price: Option<i32>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
     pub notes: String,

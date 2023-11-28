@@ -1,5 +1,6 @@
 use crate::config::database::DatabaseTrait;
 use crate::dto::dto_excel::ItemExcelDto;
+use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
 use crate::model::cates::CateModel;
 use crate::model::items::ItemsModel;
@@ -92,6 +93,8 @@ async fn import_excel(
 }
 
 async fn process_embryo_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
+    tracing::info!("import excel for embryo....");
+    let items = parse_embryos(&file_path)?;
     todo!()
 }
 

@@ -9,6 +9,12 @@ create table cates
     create_time TIMESTAMP not null default now() -- 创建时间
 );
 
+-- test
+insert into cates (cate_type, name) values (0, '大类1');
+insert into cates (cate_type, name) values (0, '大类1');
+insert into cates (cate_type, name, parent_id) values (1, '小类1', 1);
+insert into cates (cate_type, name, parent_id) values (1, '小类1', 2);
+
 -- 客户
 create table customers
 (
@@ -25,6 +31,11 @@ create table customers
 );
 create unique index uniq_customers_name on customers (name);
 create index idx_customers_type on customers (ty_pe);
+
+-- test
+insert into customers (name, ty_pe) values('客户1', 2);
+insert into customers (name, ty_pe) values('客户2', 1);
+insert into customers (name, ty_pe) values('客户3', 2);
 
 -- 产品
 create table items
@@ -109,21 +120,23 @@ create table orders
     id          serial PRIMARY KEY,
     account_id  integer   not null default 0,    -- 操作人
     customer_id integer   not null default 0,    --
-    order_no    text      not null default '',   --
+--     order_no    text      not null default '',   --
     create_time TIMESTAMP not null default now() -- 创建时间
 );
-create index idx_orders_order_no on orders (order_no);
+-- create index idx_orders_order_no on orders (order_no);
 
 -- 订单商品
 create table order_items
 (
-    id          serial PRIMARY KEY,
-    order_id    integer   not null default 0,
-    index       integer   not null default 0,
-    item_id     integer   not null default 0,
-    count       integer   not null default 0,
-    price       integer   not null default 0,
-    create_time TIMESTAMP not null default now() -- 创建时间
+    id           serial PRIMARY KEY,
+    order_id     integer   not null default 0,
+    index        integer   not null default 0,
+    item_id      integer   not null default 0,
+    count        integer   not null default 0,
+    origin_price integer   not null default 0,
+    price        integer   not null default 0,
+    discount     integer   not null default 100,
+    create_time  TIMESTAMP not null default now() -- 创建时间
 );
 create index idx_order_items_order_id on order_items (order_id);
 create index idx_order_items_item_id on order_items (item_id);
@@ -162,6 +175,5 @@ create table customer_types
     create_time timestamp not null default now()
 );
 create unique index uniq_customer_types_type on customer_types (ty_pe);
-insert into customer_types (ty_pe)
-values ('普通客户'),
-       ('VIP客户');
+insert into customer_types (ty_pe) values ('普通客户');
+insert into customer_types (ty_pe) values ('VIP客户');

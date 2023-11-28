@@ -1,7 +1,6 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{DeleteParams, EditParams, ItemsDto, QueryParams};
-use crate::model::cates::CateModel;
 use crate::model::items::ItemsModel;
 use crate::ERPResult;
 use async_trait::async_trait;
@@ -36,11 +35,13 @@ impl ItemServiceTrait for ItemService {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from items ");
         if !params.is_empty() {
             let mut and = "";
-            if !params.brand.is_empty() {
-                sql.push(&format!("{} brand= ", and))
-                    .push_bind(params.brand.deref());
+
+            if !params.name.is_empty() {
+                sql.push(&format!("{} name = ", and))
+                    .push_bind(params.name.deref());
                 and = " and ";
             }
+
             if params.cate1_id != 0 {
                 sql.push(&format!("{} cate1_id = ", and))
                     .push_bind(params.cate1_id);
@@ -51,15 +52,23 @@ impl ItemServiceTrait for ItemService {
                     .push_bind(params.cate2_id);
                 and = " and ";
             }
-            if !params.goods_no.is_empty() {
-                sql.push(&format!("{} goods_no= ", and))
-                    .push_bind(params.goods_no.deref());
+
+            if !params.number.is_empty() {
+                sql.push(&format!("{} number = ", and))
+                    .push_bind(params.number.deref());
                 and = " and ";
             }
-            if !params.name.is_empty() {
-                sql.push(&format!("{} name= ", and))
-                    .push_bind(params.name.deref());
+            if !params.barcode.is_empty() {
+                sql.push(&format!("{} barcode = ", and))
+                    .push_bind(params.barcode.deref());
                 and = " and ";
+            }
+
+            if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+                sql.push(&format!(" {} create_time >= ", and))
+                    .push_bind(params.create_time_st.deref())
+                    .push(&format!(" {} create_time <= ", and))
+                    .push_bind(params.create_time_ed.deref());
             }
         }
         //     let field = param.sorter_field.as_deref().unwrap_or("id");
@@ -85,9 +94,9 @@ impl ItemServiceTrait for ItemService {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from items ");
         if !params.is_empty() {
             let mut and = "";
-            if !params.brand.is_empty() {
-                sql.push(&format!("{} brand= ", and))
-                    .push_bind(params.brand.deref());
+            if !params.name.is_empty() {
+                sql.push(&format!("{} name = ", and))
+                    .push_bind(params.name.deref());
                 and = " and ";
             }
 
@@ -102,15 +111,22 @@ impl ItemServiceTrait for ItemService {
                 and = " and ";
             }
 
-            if !params.goods_no.is_empty() {
-                sql.push(&format!("{} goods_no= ", and))
-                    .push_bind(params.goods_no.deref());
+            if !params.number.is_empty() {
+                sql.push(&format!("{} number= ", and))
+                    .push_bind(params.number.deref());
                 and = " and ";
             }
-            if !params.name.is_empty() {
-                sql.push(&format!("{} name= ", and))
-                    .push_bind(params.name.deref());
+            if !params.barcode.is_empty() {
+                sql.push(&format!("{} barcode= ", and))
+                    .push_bind(params.barcode.deref());
                 and = " and ";
+            }
+
+            if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+                sql.push(&format!(" {} create_time >= ", and))
+                    .push_bind(params.create_time_st.deref())
+                    .push(&format!(" {} create_time <= ", and))
+                    .push_bind(params.create_time_ed.deref());
             }
         }
 

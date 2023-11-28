@@ -20,6 +20,7 @@ mod routes_embryo;
 mod routes_excel;
 mod routes_items;
 mod routes_login;
+mod routes_orders;
 mod routes_settings;
 mod routes_static;
 mod routes_upload;

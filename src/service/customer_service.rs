@@ -1,5 +1,5 @@
 use crate::config::database::{Database, DatabaseTrait};
-use crate::dto::dto_customer::{CustomerEditParam, CustomerSearchParam};
+use crate::dto::dto_customer::{CustomerDto, CustomerEditParam, CustomerSearchParam};
 use crate::model::customer::CustomerModel;
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
@@ -13,7 +13,7 @@ pub struct CustomerService {
 #[async_trait]
 pub trait CustomerServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
-
+    async fn get_customer_with_id(&self, customer_id: i32) -> ERPResult<CustomerDto>;
     async fn get_customers(&self, param: &CustomerSearchParam) -> ERPResult<Vec<CustomerModel>>;
 
     async fn get_customers_count(&self, param: &CustomerSearchParam) -> ERPResult<i32>;
@@ -27,6 +27,21 @@ pub trait CustomerServiceTrait {
 impl CustomerServiceTrait for CustomerService {
     fn new(db: &Arc<Database>) -> Self {
         Self { db: Arc::clone(db) }
+    }
+
+    async fn get_customer_with_id(&self, customer_id: i32) -> ERPResult<CustomerDto> {
+        let customer = sqlx::query_as!(
+            CustomerDto,
+            r#"select c.*, ct.ty_pe as customer_type
+             from customers c, customer_types ct
+             where c.ty_pe=ct.id and c.id=$1
+             "#,
+            customer_id
+        )
+        .fetch_one(self.db.get_pool())
+        .await?;
+
+        Ok(customer)
     }
 
     async fn get_customers(&self, param: &CustomerSearchParam) -> ERPResult<Vec<CustomerModel>> {

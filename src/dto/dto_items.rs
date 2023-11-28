@@ -24,13 +24,13 @@ pub struct ItemsDto {
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
     // todo: more fields
-    pub brand: String, // 品牌
-    // pub cates1: String, // 产品大类
-    // pub cates2: String, // 产品小类
     pub cate1_id: i32,
     pub cate2_id: i32,
-    pub goods_no: String, // 货号
-    pub name: String,     // 产品名称
+    pub name: String,    // 产品名称
+    pub number: String,  // 货号
+    pub barcode: String, // 货号
+    pub create_time_st: String,
+    pub create_time_ed: String,
 
     pub page: Option<i32>,
     pub page_size: Option<i32>,
@@ -38,18 +38,22 @@ pub struct QueryParams {
 
 impl QueryParams {
     pub fn is_empty(&self) -> bool {
-        if !self.brand.is_empty() {
+        if !self.name.is_empty() {
             return false;
         }
         if self.cate1_id != 0 || self.cate2_id != 0 {
             return false;
         }
 
-        if !self.goods_no.is_empty() {
+        if !self.number.is_empty() {
             return false;
         }
 
-        if !self.name.is_empty() {
+        if !self.barcode.is_empty() {
+            return false;
+        }
+
+        if !self.create_time_ed.is_empty() && !self.create_time_st.is_empty() {
             return false;
         }
 

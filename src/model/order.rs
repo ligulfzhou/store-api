@@ -1,92 +1,56 @@
 use crate::{ERPError, ERPResult};
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use sqlx::{Pool, Postgres, QueryBuilder};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OrderModel {
     pub id: i32,
-    pub customer_no: String,
-    pub order_no: String,
-    pub order_date: NaiveDate,
-    pub delivery_date: Option<NaiveDate>,
-    pub is_urgent: bool,       //紧急 ‼️
-    pub is_return_order: bool, // 返单
-}
-
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct OrderGoodsModel {
-    pub id: i32,
-    pub index: i32,
-    pub order_id: i32,
-    pub goods_id: i32,
-}
-
-impl OrderGoodsModel {
-    pub async fn add_rows(
-        db: &Pool<Postgres>,
-        rows: &[OrderGoodsModel],
-    ) -> ERPResult<Vec<OrderGoodsModel>> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into order_goods (index, order_id, goods_id) ");
-
-        query_builder.push_values(rows, |mut b, item| {
-            b.push_bind(item.index)
-                .push_bind(item.order_id)
-                .push_bind(item.goods_id);
-        });
-        query_builder.push(" returning *;");
-
-        let res = query_builder
-            .build_query_as::<OrderGoodsModel>()
-            .fetch_all(db)
-            .await
-            .map_err(ERPError::DBError)?;
-
-        Ok(res)
-    }
+    pub account_id: i32,
+    pub customer_id: i32,
+    pub create_time: NaiveDateTime,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
-    pub order_goods_id: i32, // todo: 应该是比存goods_id好
     pub order_id: i32,
-    pub sku_id: i32,
+    pub index: i32,
+    pub item_id: i32,
     pub count: i32,
-    pub unit: Option<String>,
-    pub unit_price: Option<i32>,
-    pub total_price: Option<i32>,
-    pub notes: String,
+    pub origin_price: i32,
+    pub price: i32,
+    pub discount: i32,
+    pub create_time: NaiveDateTime,
 }
 
 impl OrderItemModel {
-    pub async fn save_to_order_item_table(
-        db: &Pool<Postgres>,
-        items: &[OrderItemModel],
-    ) -> ERPResult<Vec<OrderItemModel>> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into order_items (order_goods_id, order_id, sku_id, count, unit, unit_price, total_price) ");
-
-        query_builder.push_values(items, |mut b, item| {
-            b.push_bind(item.order_goods_id)
-                .push_bind(item.order_id)
-                .push_bind(item.sku_id)
-                .push_bind(item.count)
-                .push_bind(item.unit.as_deref().unwrap_or(""))
-                .push_bind(item.unit_price.unwrap_or(0))
-                .push_bind(item.total_price.unwrap_or(0));
-        });
-        query_builder.push(" returning *;");
-
-        let res = query_builder
-            .build_query_as::<OrderItemModel>()
-            .fetch_all(db)
-            .await
-            .map_err(ERPError::DBError)?;
-
-        Ok(res)
-    }
+    // pub async fn save_to_order_item_table(
+    //     db: &Pool<Postgres>,
+    //     items: &[OrderItemModel],
+    // ) -> ERPResult<Vec<OrderItemModel>> {
+    //     let mut query_builder: QueryBuilder<Postgres> =
+    //         QueryBuilder::new("insert into order_items (order_goods_id, order_id, sku_id, count, unit, unit_price, total_price) ");
+    //
+    //     query_builder.push_values(items, |mut b, item| {
+    //         b.push_bind(item.order_goods_id)
+    //             .push_bind(item.order_id)
+    //             .push_bind(item.sku_id)
+    //             .push_bind(item.count)
+    //             .push_bind(item.unit.as_deref().unwrap_or(""))
+    //             .push_bind(item.unit_price.unwrap_or(0))
+    //             .push_bind(item.total_price.unwrap_or(0));
+    //     });
+    //     query_builder.push(" returning *;");
+    //
+    //     let res = query_builder
+    //         .build_query_as::<OrderItemModel>()
+    //         .fetch_all(db)
+    //         .await
+    //         .map_err(ERPError::DBError)?;
+    //
+    //     Ok(res)
+    // }
 }
 
 #[derive(Debug, Clone)]

@@ -1,8 +1,10 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_embryo::{DeleteParams, EditParams, QueryParams};
+use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::ItemsModel;
+use crate::state::embryo_state::EmbryoState;
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
@@ -17,11 +19,11 @@ pub struct EmbryoService {
 #[async_trait]
 pub trait EmbryoServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
-    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>>;
+    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<EmbryoModel>>;
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
-    async fn insert_multiple_items(&self, rows: &[EmbryoModel]) -> ERPResult<Vec<EmbryoModel>>;
+    async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>>;
 }
 
 #[async_trait]
@@ -29,7 +31,7 @@ impl EmbryoServiceTrait for EmbryoService {
     fn new(db: &Arc<Database>) -> Self {
         Self { db: Arc::clone(db) }
     }
-    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>> {
+    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<EmbryoModel>> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from embryos ");
         if !params.is_empty() {
             let mut and = "";
@@ -45,11 +47,11 @@ impl EmbryoServiceTrait for EmbryoService {
                 and = " and ";
             }
 
-            if !params.color.is_empty() {
-                sql.push(&format!("{} color= ", and))
-                    .push_bind(params.color.deref());
-                and = " and ";
-            }
+            // if !params.color.is_empty() {
+            //     sql.push(&format!("{} color= ", and))
+            //         .push_bind(params.color.deref());
+            //     and = " and ";
+            // }
         }
         //     let field = param.sorter_field.as_deref().unwrap_or("id");
         //     let order = param.sorter_order.as_deref().unwrap_or("desc");
@@ -64,7 +66,7 @@ impl EmbryoServiceTrait for EmbryoService {
         ));
 
         let items = sql
-            .build_query_as::<ItemsModel>()
+            .build_query_as::<EmbryoModel>()
             .fetch_all(self.db.get_pool())
             .await?;
 
@@ -87,11 +89,11 @@ impl EmbryoServiceTrait for EmbryoService {
                 and = " and ";
             }
 
-            if !params.color.is_empty() {
-                sql.push(&format!("{} color= ", and))
-                    .push_bind(params.color.deref());
-                and = " and ";
-            }
+            // if !params.color.is_empty() {
+            //     sql.push(&format!("{} color= ", and))
+            //         .push_bind(params.color.deref());
+            //     and = " and ";
+            // }
         }
 
         let count = sql
@@ -153,8 +155,7 @@ impl EmbryoServiceTrait for EmbryoService {
         Ok(())
     }
 
-    // todo
-    async fn insert_multiple_items(&self, rows: &[EmbryoModel]) -> ERPResult<Vec<EmbryoModel>> {
+    async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>> {
         let mut query_builder: QueryBuilder<Postgres> =
             QueryBuilder::new("insert into embryos (images, name,  color, unit, number, notes)");
 

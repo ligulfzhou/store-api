@@ -3,6 +3,7 @@ use crate::middleware::auth::auth;
 use crate::state::account_state::AccountState;
 use crate::state::cate_state::CateState;
 use crate::state::customer_state::CustomerState;
+use crate::state::embryo_state::EmbryoState;
 use crate::state::excel_state::ExcelState;
 use crate::state::item_state::ItemState;
 use crate::state::settings_state::SettingsState;
@@ -71,6 +72,7 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                     auth,
                 )),
         )
+        .merge(routes_embryo::routes().with_state(EmbryoState::new(&db)))
         .merge(routes_items::routes().with_state(ItemState::new(&db)))
         .merge(routes_upload::routes())
         .merge(routes_settings::routes().with_state(SettingsState::new(&db)))

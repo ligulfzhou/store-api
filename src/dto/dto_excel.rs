@@ -19,10 +19,17 @@ pub struct ItemExcelDto {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct EmbryoExcelDto {
-    pub images: Vec<String>, // 图片
-    pub name: String,        // 名称
-    pub color: String,       // 颜色
-    pub number: String,      // 货号
-    pub unit: String,        // 单位
-    pub count: i32,          // 数量
+    pub images: Vec<String>,
+    // 图片
+    pub name: String,
+    // 名称
+    pub color: String,
+    // 颜色
+    pub number: String,
+    // 货号
+    pub unit: String,
+    // 单位
+    pub count: i32,
+    // 数量
+    pub notes: String,
 }

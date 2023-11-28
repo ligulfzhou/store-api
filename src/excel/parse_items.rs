@@ -60,6 +60,8 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
                         i,
                         J_TO_NAME.get(&(j as i32)).unwrap_or(&"")
                     )));
+                } else {
+                    continue;
                 }
             }
 

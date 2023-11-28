@@ -13,7 +13,8 @@ lazy_static! {
         (3, "名称"),
         (4, "颜色"),
         (5, "单位"),
-        (6, "数量")
+        (6, "数量"),
+        (7, "备注")
     ]
     .into_iter()
     .collect();
@@ -52,6 +53,8 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
                         i,
                         J_TO_NAME.get(&(j as i32)).unwrap_or(&"")
                     )));
+                } else {
+                    continue;
                 }
             }
 
@@ -82,8 +85,13 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
                 4 => cur.color = cell_value.trim().to_string(),
                 5 => cur.unit = cell_value.trim().to_string(),
                 6 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
+                7 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
+        }
+
+        if images.is_empty() && cur.color.is_empty() && cur.number.is_empty() {
+            break;
         }
 
         if images.is_empty() {

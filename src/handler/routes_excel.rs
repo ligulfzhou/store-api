@@ -1,11 +1,12 @@
 use crate::config::database::DatabaseTrait;
-use crate::dto::dto_excel::ItemExcelDto;
+use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto};
 use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
 use crate::model::cates::CateModel;
 use crate::model::items::ItemsModel;
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
+use crate::service::embryo_service::EmbryoServiceTrait;
 use crate::service::item_service::ItemServiceTrait;
 use crate::state::excel_state::ExcelState;
 use crate::{ERPError, ERPResult};
@@ -92,11 +93,53 @@ async fn import_excel(
     Ok(APIEmptyResponse::new())
 }
 
+/// for embryo
+
 async fn process_embryo_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
     tracing::info!("import excel for embryo....");
     let items = parse_embryos(&file_path)?;
-    todo!()
+
+    // 检查数据的正确性
+    check_embryo_date_valid(&items)?;
+
+    let numbers = items
+        .iter()
+        .map(|item| item.number.clone())
+        .collect::<Vec<_>>();
+
+    let existing_numbers = match numbers.len() {
+        0 => vec![],
+        _ => sqlx::query!(
+            "select number from embryos where number = any($1)",
+            &numbers
+        )
+        .fetch_all(state.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| item.number)
+        .collect::<Vec<_>>(),
+    };
+
+    let to_add_items = items
+        .into_iter()
+        .filter(|item| !existing_numbers.contains(&item.number))
+        .collect::<Vec<_>>();
+
+    if !to_add_items.is_empty() {
+        state
+            .embryo_service
+            .insert_multiple_items(&to_add_items)
+            .await?;
+    }
+
+    Ok(())
 }
+
+fn check_embryo_date_valid(items: &[EmbryoExcelDto]) -> ERPResult<bool> {
+    Ok(true)
+}
+
+/// for items
 
 async fn process_item_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
     tracing::info!("import excel....");

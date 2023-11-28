@@ -10,10 +10,14 @@ create table cates
 );
 
 -- test
-insert into cates (cate_type, name) values (0, '大类1');
-insert into cates (cate_type, name) values (0, '大类1');
-insert into cates (cate_type, name, parent_id) values (1, '小类1', 1);
-insert into cates (cate_type, name, parent_id) values (1, '小类1', 2);
+insert into cates (cate_type, name)
+values (0, '大类1');
+insert into cates (cate_type, name)
+values (0, '大类1');
+insert into cates (cate_type, name, parent_id)
+values (1, '小类1', 1);
+insert into cates (cate_type, name, parent_id)
+values (1, '小类1', 2);
 
 -- 客户
 create table customers
@@ -33,9 +37,12 @@ create unique index uniq_customers_name on customers (name);
 create index idx_customers_type on customers (ty_pe);
 
 -- test
-insert into customers (name, ty_pe) values('客户1', 2);
-insert into customers (name, ty_pe) values('客户2', 1);
-insert into customers (name, ty_pe) values('客户3', 2);
+insert into customers (name, ty_pe)
+values ('客户1', 2);
+insert into customers (name, ty_pe)
+values ('客户2', 1);
+insert into customers (name, ty_pe)
+values ('客户3', 2);
 
 -- 产品
 create table items
@@ -84,6 +91,7 @@ create table embryos
     unit        text      not null default '',   -- 单位
     notes       text      not null default '',   -- 备注
     number      text      not null default '',   -- 编号
+    notes       text      not null default '',   -- 备注
     create_time TIMESTAMP not null default now() -- 创建时间
 );
 
@@ -161,10 +169,14 @@ create table color_settings
     create_time TIMESTAMP not null default now() -- 创建时间
 );
 create unique index uniq_color_setting_color on color_settings (color);
-insert into color_settings(color, value) values ('金', 1);
-insert into color_settings(color, value) values ('14K金', 2);
-insert into color_settings(color, value) values ('18K金', 3);
-insert into color_settings(color, value) values ('钢', 4);
+insert into color_settings(color, value)
+values ('金', 1);
+insert into color_settings(color, value)
+values ('14K金', 2);
+insert into color_settings(color, value)
+values ('18K金', 3);
+insert into color_settings(color, value)
+values ('钢', 4);
 
 create table customer_types
 (
@@ -173,5 +185,7 @@ create table customer_types
     create_time timestamp not null default now()
 );
 create unique index uniq_customer_types_type on customer_types (ty_pe);
-insert into customer_types (ty_pe) values ('普通客户');
-insert into customer_types (ty_pe) values ('VIP客户');
+insert into customer_types (ty_pe)
+values ('普通客户');
+insert into customer_types (ty_pe)
+values ('VIP客户');

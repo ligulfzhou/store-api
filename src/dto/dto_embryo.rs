@@ -1,6 +1,6 @@
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
-    pub color: String,
+    // pub color: String,
     pub number: String, // 货号
     pub name: String,   // 产品名称
 
@@ -16,9 +16,9 @@ impl QueryParams {
         if !self.name.is_empty() {
             return false;
         }
-        if !self.color.is_empty() {
-            return false;
-        }
+        // if !self.color.is_empty() {
+        //     return false;
+        // }
 
         true
     }

@@ -1,6 +1,5 @@
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
-    // todo: more fields
     pub color: String,
     pub number: String, // 货号
     pub name: String,   // 产品名称

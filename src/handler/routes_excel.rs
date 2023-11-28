@@ -6,7 +6,7 @@ use crate::model::items::ItemsModel;
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::service::item_service::ItemServiceTrait;
-use crate::state::item_state::ItemState;
+use crate::state::excel_state::ExcelState;
 use crate::{ERPError, ERPResult};
 use axum::extract::{Multipart, State};
 use axum::response::{Html, IntoResponse};
@@ -17,7 +17,7 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::fs;
 
-pub fn routes() -> Router<ItemState> {
+pub fn routes() -> Router<ExcelState> {
     Router::new()
         .route("/page/upload", get(page_upload_file))
         .route("/api/upload/excel", post(import_excel))
@@ -43,10 +43,11 @@ async fn page_upload_file() -> impl IntoResponse {
 }
 
 async fn import_excel(
-    State(state): State<ItemState>,
+    State(state): State<ExcelState>,
     mut multipart: Multipart,
 ) -> ERPResult<APIEmptyResponse> {
     let mut file_path: String = "".to_string();
+    let mut tp: i32 = 0;
 
     // 获取 二进制文件，保存到本地/tmp，并且目录是当前的时间
     while let Some(field) = multipart.next_field().await.unwrap() {
@@ -71,6 +72,9 @@ async fn import_excel(
                 ERPError::SaveFileFailed(format!("create {} failed", file_path_full))
             })?;
             file_path = file_path_full;
+        } else if name == "tp" {
+            let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
+            tp = data.parse::<i32>().unwrap_or(0);
         }
     }
 
@@ -79,6 +83,19 @@ async fn import_excel(
         return Err(ERPError::Failed("save excel file failed".to_string()));
     }
 
+    match tp {
+        0 => process_item_excel(&state, &file_path).await?,
+        _ => process_embryo_excel(&state, &file_path).await?,
+    }
+
+    Ok(APIEmptyResponse::new())
+}
+
+async fn process_embryo_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
+    todo!()
+}
+
+async fn process_item_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
     tracing::info!("import excel....");
     let items = parse_items(&file_path)?;
 
@@ -192,10 +209,10 @@ async fn import_excel(
         }
     }
 
-    Ok(APIEmptyResponse::new())
+    Ok(())
 }
 
-async fn check_if_excel_data_valid(state: &ItemState, items: &[ItemExcelDto]) -> ERPResult<bool> {
+async fn check_if_excel_data_valid(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<bool> {
     // 不能为空的字段，图片（可多张），名称，颜色，大类，单位，售价，成本，编号
 
     // 编号必须是6位
@@ -209,7 +226,7 @@ struct CateData {
     existing_cate1_to_id: HashMap<String, i32>,
     existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>>,
 }
-async fn handle_cates(state: &ItemState, items: &[ItemExcelDto]) -> ERPResult<CateData> {
+async fn handle_cates(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<CateData> {
     // 不需要处理，只需要把cates记录到数据库里
     // todo!()
 

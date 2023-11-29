@@ -3,9 +3,7 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_embryo::{EditParams, QueryParams};
 use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::dto::GenericDeleteParams;
-use crate::model::embryo::EmbryoModel;
-use crate::model::items::ItemsModel;
-use crate::state::embryo_state::EmbryoState;
+use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
@@ -25,6 +23,7 @@ pub trait EmbryoServiceTrait {
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &GenericDeleteParams) -> ERPResult<()>;
     async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>>;
+    async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -177,5 +176,24 @@ impl EmbryoServiceTrait for EmbryoService {
             .await?;
 
         Ok(embryos)
+    }
+
+    async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "insert into embryo_inout (account_id, embryo_id, count, in_true_out_false, via) ",
+        );
+
+        query_builder.push_values(rows, |mut b, item| {
+            b.push_bind(item.account_id)
+                .push_bind(item.embryo_id)
+                .push_bind(item.count)
+                .push_bind(item.in_true_out_false)
+                .push_bind(item.via.clone());
+        });
+
+        query_builder.push(" returning id;");
+
+        query_builder.build().execute(self.db.get_pool()).await?;
+        Ok(())
     }
 }

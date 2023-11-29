@@ -4,6 +4,7 @@ use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto};
 use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
 use crate::model::cates::CateModel;
+use crate::model::embryo::EmbryoInOutModel;
 use crate::model::items::{ItemsInOutModel, ItemsModel};
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
@@ -98,7 +99,7 @@ async fn import_excel(
 
     match tp {
         0 => process_item_excel(&state, &file_path, color_to_value, &account).await?,
-        _ => process_embryo_excel(&state, &file_path, color_to_value).await?,
+        _ => process_embryo_excel(&state, &file_path, color_to_value, &account).await?,
     }
 
     Ok(APIEmptyResponse::new())
@@ -109,12 +110,19 @@ async fn process_embryo_excel(
     state: &ExcelState,
     file_path: &str,
     color_to_value: HashMap<String, i32>,
+    account: &AccountDto,
 ) -> ERPResult<()> {
     tracing::info!("import excel for embryo....");
     let items = parse_embryos(&file_path)?;
 
     // 检查数据的正确性
     check_embryo_date_valid(&items)?;
+
+    let mut number_to_id = HashMap::new();
+    let number_to_count = items
+        .iter()
+        .map(|item| (item.number.clone(), item.count))
+        .collect::<HashMap<_, _>>();
 
     let numbers = items
         .iter()
@@ -123,15 +131,23 @@ async fn process_embryo_excel(
 
     let existing_numbers = match numbers.len() {
         0 => vec![],
-        _ => sqlx::query!(
-            "select number from embryos where number = any($1)",
-            &numbers
-        )
-        .fetch_all(state.db.get_pool())
-        .await?
-        .into_iter()
-        .map(|item| item.number)
-        .collect::<Vec<_>>(),
+        _ => {
+            let number_and_id = sqlx::query!(
+                "select number, id from embryos where number = any($1)",
+                &numbers
+            )
+            .fetch_all(state.db.get_pool())
+            .await?;
+
+            number_and_id.iter().for_each(|item| {
+                number_to_id.insert(item.number.clone(), item.id);
+            });
+
+            number_and_id
+                .into_iter()
+                .map(|item| item.number)
+                .collect::<Vec<_>>()
+        }
     };
 
     let to_add_items = items
@@ -143,14 +159,41 @@ async fn process_embryo_excel(
         state
             .embryo_service
             .insert_multiple_items(&to_add_items)
+            .await?
+            .iter()
+            .for_each(|item| {
+                number_to_id.insert(item.number.clone(), item.id);
+            });
+    }
+
+    let ins = number_to_count
+        .into_iter()
+        .map(|(number, count)| {
+            let id = number_to_id.get(&number).unwrap_or(&0);
+            EmbryoInOutModel {
+                id: 0,
+                account_id: account.id,
+                embryo_id: *id,
+                count,
+                in_true_out_false: true,
+                via: "excel".to_string(),
+                create_time: Default::default(),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if !ins.is_empty() {
+        state
+            .embryo_service
+            .insert_multiple_items_inouts(&ins)
             .await?;
     }
 
     Ok(())
 }
 
-fn check_embryo_date_valid(items: &[EmbryoExcelDto]) -> ERPResult<bool> {
-    Ok(true)
+fn check_embryo_date_valid(items: &[EmbryoExcelDto]) -> ERPResult<()> {
+    Ok(())
 }
 
 /// for items

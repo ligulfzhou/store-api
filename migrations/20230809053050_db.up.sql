@@ -88,7 +88,6 @@ create table embryos
     name        text      not null default '',   -- 名称
     color       text      not null default '',   -- 颜色
     unit        text      not null default '',   -- 单位
-    notes       text      not null default '',   -- 备注
     number      text      not null default '',   -- 编号
     notes       text      not null default '',   -- 备注
     create_time TIMESTAMP not null default now() -- 创建时间

@@ -77,7 +77,7 @@ impl SettingsServiceTrait for SettingsService {
 
                 sqlx::query!(
                     "insert into color_settings (color, value) values ($1, $2)",
-                    params.color,
+                    params.color.to_ascii_uppercase(),
                     params.value
                 )
                 .execute(self.db.get_pool())
@@ -111,7 +111,7 @@ impl SettingsServiceTrait for SettingsService {
 
                 sqlx::query!(
                     "update color_settings set color=$1, value=$2 where id = $3",
-                    params.color,
+                    params.color.to_ascii_uppercase(),
                     params.value,
                     params.id
                 )

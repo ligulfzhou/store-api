@@ -54,12 +54,14 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
             header::HeaderName::from_lowercase(b"x-requested-with").unwrap(),
         ]);
 
+    let auth_state = AccountState::new(&db);
     let routes_all = Router::new()
+        .with_state(auth_state.clone())
         .merge(
             routes_cates::routes()
                 .with_state(CateState::new(&db))
                 .layer(axum::middleware::from_fn_with_state(
-                    AccountState::new(&db),
+                    auth_state.clone(),
                     auth,
                 )),
         )
@@ -68,15 +70,21 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
             routes_account::routes()
                 .with_state(AccountState::new(&db))
                 .layer(axum::middleware::from_fn_with_state(
-                    AccountState::new(&db),
+                    auth_state.clone(),
                     auth,
                 )),
         )
         .merge(routes_embryo::routes().with_state(EmbryoState::new(&db)))
         .merge(routes_items::routes().with_state(ItemState::new(&db)))
-        .merge(routes_upload::routes())
         .merge(routes_settings::routes().with_state(SettingsState::new(&db)))
-        .merge(routes_excel::routes().with_state(ExcelState::new(&db)))
+        .merge(
+            routes_excel::routes()
+                .with_state(ExcelState::new(&db))
+                .layer(axum::middleware::from_fn_with_state(
+                    auth_state.clone(),
+                    auth,
+                )),
+        )
         .merge(routes_login::routes().with_state(AccountState::new(&db)))
         // todo: for test
         .layer(axum::middleware::map_response(main_response_mapper))

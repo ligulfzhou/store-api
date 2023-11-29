@@ -1,19 +1,21 @@
 use crate::config::database::DatabaseTrait;
+use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto};
 use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
 use crate::model::cates::CateModel;
-use crate::model::items::ItemsModel;
+use crate::model::items::{ItemsInOutModel, ItemsModel};
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::service::embryo_service::EmbryoServiceTrait;
 use crate::service::item_service::ItemServiceTrait;
+use crate::service::settings_service::SettingsServiceTrait;
 use crate::state::excel_state::ExcelState;
 use crate::{ERPError, ERPResult};
 use axum::extract::{Multipart, State};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Extension, Router};
 use chrono::{Datelike, Timelike, Utc};
 use rand::Rng;
 use std::collections::HashMap;
@@ -25,7 +27,7 @@ pub fn routes() -> Router<ExcelState> {
         .route("/api/upload/excel", post(import_excel))
 }
 
-async fn page_upload_file() -> impl IntoResponse {
+async fn page_upload_file(Extension(_account): Extension<AccountDto>) -> impl IntoResponse {
     Html(
         r#"
 <!DOCTYPE html>
@@ -46,6 +48,7 @@ async fn page_upload_file() -> impl IntoResponse {
 
 async fn import_excel(
     State(state): State<ExcelState>,
+    Extension(account): Extension<AccountDto>,
     mut multipart: Multipart,
 ) -> ERPResult<APIEmptyResponse> {
     let mut file_path: String = "".to_string();
@@ -85,17 +88,28 @@ async fn import_excel(
         return Err(ERPError::Failed("save excel file failed".to_string()));
     }
 
+    let color_to_value = state
+        .settings_service
+        .get_all_color_to_values()
+        .await?
+        .into_iter()
+        .map(|cv| (cv.color, cv.value))
+        .collect::<HashMap<_, _>>();
+
     match tp {
-        0 => process_item_excel(&state, &file_path).await?,
-        _ => process_embryo_excel(&state, &file_path).await?,
+        0 => process_item_excel(&state, &file_path, color_to_value, &account).await?,
+        _ => process_embryo_excel(&state, &file_path, color_to_value).await?,
     }
 
     Ok(APIEmptyResponse::new())
 }
 
 /// for embryo
-
-async fn process_embryo_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
+async fn process_embryo_excel(
+    state: &ExcelState,
+    file_path: &str,
+    color_to_value: HashMap<String, i32>,
+) -> ERPResult<()> {
     tracing::info!("import excel for embryo....");
     let items = parse_embryos(&file_path)?;
 
@@ -141,15 +155,26 @@ fn check_embryo_date_valid(items: &[EmbryoExcelDto]) -> ERPResult<bool> {
 
 /// for items
 
-async fn process_item_excel(state: &ExcelState, file_path: &str) -> ERPResult<()> {
+async fn process_item_excel(
+    state: &ExcelState,
+    file_path: &str,
+    color_to_value: HashMap<String, i32>,
+    account: &AccountDto,
+) -> ERPResult<()> {
     tracing::info!("import excel....");
-    let items = parse_items(&file_path)?;
+    let items = parse_items(&file_path, color_to_value)?;
 
     // 检查数据的正确性
     check_if_excel_data_valid(&state, &items).await?;
 
     // 对未出现过的 类别，入库(并返回所有的类别）
     let cate_data = handle_cates(&state, &items).await?;
+
+    let mut barcode_to_id: HashMap<String, i32> = HashMap::new();
+    let barcode_to_count = items
+        .iter()
+        .map(|item| (item.barcode.clone(), item.count))
+        .collect::<HashMap<_, _>>();
 
     // 用barcode去重
     let barcodes = items
@@ -165,16 +190,20 @@ async fn process_item_excel(state: &ExcelState, file_path: &str) -> ERPResult<()
 
     let existing_barcodes = match barcodes.len() {
         0 => vec![],
-        _ => sqlx::query!(
-            "select barcode from items where barcode = any($1)",
-            &barcodes
-        )
-        .fetch_all(state.db.get_pool())
-        .await
-        .map_err(ERPError::DBError)?
-        .into_iter()
-        .map(|r| r.barcode)
-        .collect(),
+        _ => {
+            let existing_items = sqlx::query!(
+                "select barcode, id from items where barcode = any($1)",
+                &barcodes
+            )
+            .fetch_all(state.db.get_pool())
+            .await?;
+
+            existing_items.iter().for_each(|item| {
+                barcode_to_id.insert(item.barcode.clone(), item.id);
+            });
+
+            existing_items.into_iter().map(|r| r.barcode).collect()
+        }
     };
     tracing::info!("existing_barcodes: {:?}", existing_barcodes);
 
@@ -243,29 +272,90 @@ async fn process_item_excel(state: &ExcelState, file_path: &str) -> ERPResult<()
                 state
                     .item_service
                     .insert_multiple_items(&item_models[st..])
-                    .await?;
+                    .await?
+                    .into_iter()
+                    .for_each(|item| {
+                        barcode_to_id.insert(item.barcode.clone(), item.id);
+                    });
             } else {
                 tracing::info!("{:?} \n", &item_models[st..(st + 1000)].len());
                 state
                     .item_service
                     .insert_multiple_items(&item_models[st..(st + 1000)])
-                    .await?;
+                    .await?
+                    .into_iter()
+                    .for_each(|item| {
+                        barcode_to_id.insert(item.barcode.clone(), item.id);
+                    });
             }
             st += l;
         }
     }
 
+    // 添加库存
+    let ins = barcode_to_count
+        .into_iter()
+        .map(|(barcode, count)| {
+            let item_id = barcode_to_id.get(&barcode).unwrap_or(&0);
+            ItemsInOutModel {
+                id: 0,
+                account_id: account.id,
+                item_id: *item_id,
+                count,
+                in_true_out_false: true,
+                via: "excel".to_string(),
+                order_id: 0,
+                create_time: Default::default(),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if !ins.is_empty() {
+        state
+            .item_service
+            .insert_multiple_items_inouts(&ins)
+            .await?;
+    }
+
     Ok(())
 }
 
-async fn check_if_excel_data_valid(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<bool> {
+async fn check_if_excel_data_valid(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<()> {
     // 不能为空的字段，图片（可多张），名称，颜色，大类，单位，售价，成本，编号
+    // no need
 
     // 编号必须是6位
+    // 算了吧
 
     // 颜色必须预先录入
+    // 已处理
 
-    Ok(true)
+    // barcode验证重复
+    let mut barcode_to_count = HashMap::new();
+    for item in items {
+        let count = barcode_to_count.entry(&item.barcode).or_insert(0);
+        *count += 1;
+    }
+
+    let dup_barcodes = barcode_to_count
+        .iter()
+        .filter_map(|(code, count)| {
+            if count == &0 {
+                None
+            } else {
+                Some(code.as_str())
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if !dup_barcodes.is_empty() {
+        return Err(ERPError::ExcelError(format!(
+            "重复的条形码有: {}",
+            dup_barcodes.join(",")
+        )));
+    }
+
+    Ok(())
 }
 
 struct CateData {

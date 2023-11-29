@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use umya_spreadsheet::*;
 
 /*图片(可多张) 名称	颜色	产品大类	产品小类(可空) 编号	条码(可空) 规格	单位	售价	成本	备注(可空) 数量(6位数字，688001，688002...)*/
-
 lazy_static! {
     pub static ref J_TO_NAME: HashMap<i32, &'static str> = vec![
         (1, "图片"),
@@ -28,7 +27,10 @@ lazy_static! {
     pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 3, 4, 6, 9, 10, 11, 13];
 }
 
-pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
+pub fn parse_items(
+    file_path: &str,
+    color_to_value: HashMap<String, i32>,
+) -> ERPResult<Vec<ItemExcelDto>> {
     let path = std::path::Path::new(file_path);
     let sheets = reader::xlsx::read(path).unwrap();
     let items_sheet = sheets
@@ -89,7 +91,7 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
             match j {
                 // 1 => cur.name = cell_value.trim().to_string(),
                 2 => cur.name = cell_value.trim().to_string(),
-                3 => cur.color = cell_value.trim().to_string(),
+                3 => cur.color = cell_value.trim().to_string().to_ascii_uppercase(),
                 4 => cur.cates1 = cell_value.trim().to_string(),
                 5 => cur.cates2 = cell_value.trim().to_string(),
                 6 => cur.number = cell_value.trim().to_string(),
@@ -105,24 +107,46 @@ pub fn parse_items(file_path: &str) -> ERPResult<Vec<ItemExcelDto>> {
         }
 
         if images.is_empty() {
-            return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i,)));
+            return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i)));
         }
 
         if cur.barcode.is_empty() {
-            // todo: color=> value
-            cur.barcode = calculate_barcode(&cur.number, 1, cur.price);
+            if !color_to_value.contains_key(&cur.color) {
+                return Err(ERPError::ExcelError(format!(
+                    "第{}行的 颜色{} 没有在后台配置对应数值",
+                    i, cur.color
+                )));
+            }
+
+            let color_value = color_to_value.get(&cur.color).unwrap_or(&0);
+            cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price);
         }
 
-        let mut image_urls = vec![];
-        if !images.is_empty() {
-            for (index, real_goods_image) in images.into_iter().enumerate() {
-                let sku_image_name = format!("{}-{}.png", cur.barcode, index);
-                let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
-                real_goods_image.download_image(&goods_image_path);
-                image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+        // let mut image_urls = vec![];
+        // if !images.is_empty() {
+        //     for (index, real_goods_image) in images.into_iter().enumerate() {
+        //         let sku_image_name = format!("{}-{}.png", cur.barcode, index);
+        //         let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+        //         real_goods_image.download_image(&goods_image_path);
+        //         image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+        //     }
+        // }
+        // cur.images = image_urls;
+
+        cur.images = match images.is_empty() {
+            true => vec![],
+            _ => {
+                let mut tmp = vec![];
+                for (index, real_goods_image) in images.into_iter().enumerate() {
+                    let sku_image_name = format!("{}-{}.png", cur.barcode, index);
+                    let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+                    real_goods_image.download_image(&goods_image_path);
+                    tmp.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+                }
+
+                tmp
             }
-        }
-        cur.images = image_urls;
+        };
 
         tracing::info!("rows#{:?}: {:?}", i, cur);
         items.push(cur);

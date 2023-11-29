@@ -31,6 +31,32 @@ pub struct ItemsModel {
     pub create_time: NaiveDateTime, // 创建时间
 }
 
+/*
+create table item_inout
+(
+    id                serial PRIMARY KEY,
+    account_id        integer   not null default 0,
+    item_id           integer   not null default 0,
+    count             integer   not null default 0,
+    in_true_out_false bool      not null default true,
+    via               text      not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
+    order_id          integer   not null default 0,
+    create_time       TIMESTAMP not null default now()
+);
+*/
+
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct ItemsInOutModel {
+    pub id: i32,
+    pub account_id: i32,            // 商品图片
+    pub item_id: i32,               // 产品名称
+    pub count: i32,                 // 数量
+    pub in_true_out_false: bool,    // 增加还是减少
+    pub via: String,                // 规格
+    pub order_id: i32,              // 颜色
+    pub create_time: NaiveDateTime, // 创建时间
+}
+
 // impl ItemsModel {
 //     pub async fn insert_multiple_items(db: &Pool<Postgres>, rows: &[ItemsModel]) -> ERPResult<()> {
 //         let mut query_builder: QueryBuilder<Postgres> =

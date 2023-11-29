@@ -1,3 +1,4 @@
+use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_cates::{CateDto, EditParams, SubCatesParams};
 use crate::dto::GenericDeleteParams;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -6,7 +7,7 @@ use crate::state::cate_state::CateState;
 use crate::{ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::{Extension, Json, Router};
 use axum_extra::extract::WithRejection;
 
 pub fn routes() -> Router<CateState> {
@@ -18,7 +19,10 @@ pub fn routes() -> Router<CateState> {
         .route("/api/delete/cates", post(api_delete_cate))
 }
 
-async fn api_cates_list(State(state): State<CateState>) -> ERPResult<APIListResponse<CateDto>> {
+async fn api_cates_list(
+    State(state): State<CateState>,
+    Extension(_account): Extension<AccountDto>,
+) -> ERPResult<APIListResponse<CateDto>> {
     let cates_dto = state.cate_service.get_all_cates().await?;
     let count = cates_dto.len() as i32;
     Ok(APIListResponse::new(cates_dto, count))

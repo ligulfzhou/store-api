@@ -73,11 +73,10 @@ create table item_inout
     item_id           integer   not null default 0,
     count             integer   not null default 0,
     in_true_out_false bool      not null default true,
-    via               text      not null default '', -- form/excel/order
+    via               text      not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
     order_id          integer   not null default 0,
     create_time       TIMESTAMP not null default now()
 );
-
 create index idx_item_inout_account_create_time on item_inout (account_id);
 
 
@@ -185,7 +184,5 @@ create table customer_types
     create_time timestamp not null default now()
 );
 create unique index uniq_customer_types_type on customer_types (ty_pe);
-insert into customer_types (ty_pe)
-values ('普通客户');
-insert into customer_types (ty_pe)
-values ('VIP客户');
+insert into customer_types (ty_pe) values ('普通客户');
+insert into customer_types (ty_pe) values ('VIP客户');

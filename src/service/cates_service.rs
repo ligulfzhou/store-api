@@ -205,6 +205,20 @@ impl CateServiceTrait for CateService {
         // 检查产品是否存在
         match cate.cate_type {
             0 => {
+                let children_cate_count =
+                    sqlx::query!("select count(1) from cates where parent_id = $1", cate.id)
+                        .fetch_one(self.db.get_pool())
+                        .await?
+                        .count
+                        .unwrap_or(0) as i32;
+
+                if children_cate_count > 0 {
+                    return Err(ERPError::Failed(format!(
+                        "删除不合法, 大类为{}的 有{}个子类",
+                        cate.name, children_cate_count
+                    )));
+                }
+
                 let count = sqlx::query!("select count(1) from items where cate1_id = $1", cate.id)
                     .fetch_one(self.db.get_pool())
                     .await?

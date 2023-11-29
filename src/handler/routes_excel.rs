@@ -340,7 +340,7 @@ async fn check_if_excel_data_valid(state: &ExcelState, items: &[ItemExcelDto]) -
     let dup_barcodes = barcode_to_count
         .iter()
         .filter_map(|(code, count)| {
-            if count == &0 {
+            if count <= &1 {
                 None
             } else {
                 Some(code.as_str())

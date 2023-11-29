@@ -35,11 +35,13 @@ impl ItemServiceTrait for ItemService {
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from items ");
         if !params.is_empty() {
+            sql.push(" where ");
+
             let mut and = "";
 
             if !params.name.is_empty() {
                 sql.push(&format!("{} name = ", and))
-                    .push_bind(params.name.deref());
+                    .push_bind(&params.name);
                 and = " and ";
             }
 
@@ -56,20 +58,20 @@ impl ItemServiceTrait for ItemService {
 
             if !params.number.is_empty() {
                 sql.push(&format!("{} number = ", and))
-                    .push_bind(params.number.deref());
+                    .push_bind(&params.number);
                 and = " and ";
             }
             if !params.barcode.is_empty() {
                 sql.push(&format!("{} barcode = ", and))
-                    .push_bind(params.barcode.deref());
+                    .push_bind(&params.barcode);
                 and = " and ";
             }
 
             if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
                 sql.push(&format!(" {} create_time >= ", and))
-                    .push_bind(params.create_time_st.deref())
+                    .push_bind(&params.create_time_st)
                     .push(&format!(" {} create_time <= ", and))
-                    .push_bind(params.create_time_ed.deref());
+                    .push_bind(&params.create_time_ed);
             }
         }
         //     let field = param.sorter_field.as_deref().unwrap_or("id");
@@ -94,10 +96,12 @@ impl ItemServiceTrait for ItemService {
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from items ");
         if !params.is_empty() {
+            sql.push(" where ");
+
             let mut and = "";
             if !params.name.is_empty() {
                 sql.push(&format!("{} name = ", and))
-                    .push_bind(params.name.deref());
+                    .push_bind(&params.name);
                 and = " and ";
             }
 
@@ -114,20 +118,20 @@ impl ItemServiceTrait for ItemService {
 
             if !params.number.is_empty() {
                 sql.push(&format!("{} number= ", and))
-                    .push_bind(params.number.deref());
+                    .push_bind(&params.number);
                 and = " and ";
             }
             if !params.barcode.is_empty() {
                 sql.push(&format!("{} barcode= ", and))
-                    .push_bind(params.barcode.deref());
+                    .push_bind(&params.barcode);
                 and = " and ";
             }
 
             if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
                 sql.push(&format!(" {} create_time >= ", and))
-                    .push_bind(params.create_time_st.deref())
+                    .push_bind(&params.create_time_st)
                     .push(&format!(" {} create_time <= ", and))
-                    .push_bind(params.create_time_ed.deref());
+                    .push_bind(&params.create_time_ed);
             }
         }
 

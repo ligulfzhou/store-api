@@ -193,6 +193,8 @@ async fn process_embryo_excel(
 }
 
 fn check_embryo_date_valid(items: &[EmbryoExcelDto]) -> ERPResult<()> {
+    // 检查一下 excel里是否有 编号（number）重复
+
     Ok(())
 }
 

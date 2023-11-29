@@ -6,8 +6,7 @@ use crate::dto::GenericDeleteParams;
 use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
 use crate::ERPResult;
 use async_trait::async_trait;
-use sqlx::{Postgres, QueryBuilder};
-use std::ops::Deref;
+use sqlx::{query_builder::QueryBuilder, Execute, Postgres};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -33,25 +32,21 @@ impl EmbryoServiceTrait for EmbryoService {
     }
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<EmbryoModel>> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from embryos ");
+
         if !params.is_empty() {
+            sql.push(" where ");
             let mut and = "";
             if !params.name.is_empty() {
-                sql.push(&format!("{} name= ", and))
-                    .push_bind(params.name.deref());
+                sql.push(&format!("{} name = ", and))
+                    .push_bind(&params.name);
                 and = " and ";
             }
 
             if !params.number.is_empty() {
-                sql.push(&format!("{} number= ", and))
-                    .push_bind(params.number.deref());
+                sql.push(&format!("{} number = ", and))
+                    .push_bind(&params.number);
                 and = " and ";
             }
-
-            // if !params.color.is_empty() {
-            //     sql.push(&format!("{} color= ", and))
-            //         .push_bind(params.color.deref());
-            //     and = " and ";
-            // }
         }
         //     let field = param.sorter_field.as_deref().unwrap_or("id");
         //     let order = param.sorter_order.as_deref().unwrap_or("desc");
@@ -76,24 +71,19 @@ impl EmbryoServiceTrait for EmbryoService {
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select count(1) from embryos ");
         if !params.is_empty() {
+            sql.push(" where ");
             let mut and = "";
             if !params.name.is_empty() {
-                sql.push(&format!("{} name= ", and))
-                    .push_bind(params.name.deref());
+                sql.push(&format!("{} name = ", and))
+                    .push_bind(&params.name);
                 and = " and ";
             }
 
             if !params.number.is_empty() {
-                sql.push(&format!("{} number= ", and))
-                    .push_bind(params.number.deref());
+                sql.push(&format!("{} number = ", and))
+                    .push_bind(&params.number);
                 and = " and ";
             }
-
-            // if !params.color.is_empty() {
-            //     sql.push(&format!("{} color= ", and))
-            //         .push_bind(params.color.deref());
-            //     and = " and ";
-            // }
         }
 
         let count = sql

@@ -6,3 +6,8 @@
 2: sqlx mig run（创建表结构）
 3: 安装rust，并执行 cargo watch -q -c -w  src/ -x run
 ```
+
+
+
+// let s: String = sql.build().sql().into();
+// tracing::info!("sql: {}", s);

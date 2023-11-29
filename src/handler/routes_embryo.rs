@@ -1,14 +1,14 @@
-use crate::dto::dto_embryo::{EditParams, QueryParams};
+use crate::dto::dto_account::AccountDto;
+use crate::dto::dto_embryo::{EditParams, InoutParams, QueryParams};
 use crate::dto::GenericDeleteParams;
 use crate::model::embryo::EmbryoModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
-use crate::service::embryo_service::{EmbryoService, EmbryoServiceTrait};
-use crate::service::item_service::ItemServiceTrait;
+use crate::service::embryo_service::EmbryoServiceTrait;
 use crate::state::embryo_state::EmbryoState;
 use crate::{ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::{Extension, Json, Router};
 use axum_extra::extract::WithRejection;
 
 pub fn routes() -> Router<EmbryoState> {
@@ -16,6 +16,7 @@ pub fn routes() -> Router<EmbryoState> {
         .route("/api/embryos", get(api_item_list))
         .route("/api/embryo/edit", post(api_item_edit))
         .route("/api/embryo/delete", post(api_item_delete))
+    // .route("/api/embryo/inout", post(api_item_inout))
 }
 
 async fn api_item_list(
@@ -40,5 +41,17 @@ async fn api_item_delete(
     WithRejection(Json(params), _): WithRejection<Json<GenericDeleteParams>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     state.embryo_service.delete_item(&params).await?;
+    Ok(APIEmptyResponse::new())
+}
+
+async fn api_item_inout(
+    State(state): State<EmbryoState>,
+    WithRejection(Json(params), _): WithRejection<Json<InoutParams>, ERPError>,
+    Extension(account): Extension<AccountDto>,
+) -> ERPResult<APIEmptyResponse> {
+    state
+        .embryo_service
+        .add_item_inout(&params, account.id)
+        .await?;
     Ok(APIEmptyResponse::new())
 }

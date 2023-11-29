@@ -34,3 +34,11 @@ pub struct EditParams {
     pub notes: String,
     pub number: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct InoutParams {
+    pub id: i32,
+    pub in_out: bool,
+    // pub via: String, todo: 应该是不需要，肯定是form
+    pub count: i32,
+}

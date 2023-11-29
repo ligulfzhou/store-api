@@ -1,4 +1,3 @@
-use crate::model::items::ItemsModel;
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]

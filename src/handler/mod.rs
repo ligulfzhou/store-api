@@ -57,6 +57,8 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
     let auth_state = AccountState::new(&db);
     let routes_all = Router::new()
         .with_state(auth_state.clone())
+        .merge(routes_login::routes().with_state(AccountState::new(&db)))
+        // .layer(axum::middleware::from_fn_with_state(auth_state.clone(), auth))
         .merge(
             routes_cates::routes()
                 .with_state(CateState::new(&db))
@@ -65,7 +67,14 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                     auth,
                 )),
         )
-        .merge(routes_customer::routes().with_state(CustomerState::new(&db)))
+        .merge(
+            routes_customer::routes()
+                .with_state(CustomerState::new(&db))
+                .layer(axum::middleware::from_fn_with_state(
+                    auth_state.clone(),
+                    auth,
+                )),
+        )
         .merge(
             routes_account::routes()
                 .with_state(AccountState::new(&db))
@@ -74,7 +83,14 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                     auth,
                 )),
         )
-        .merge(routes_embryo::routes().with_state(EmbryoState::new(&db)))
+        .merge(
+            routes_embryo::routes()
+                .with_state(EmbryoState::new(&db))
+                .layer(axum::middleware::from_fn_with_state(
+                    auth_state.clone(),
+                    auth,
+                )),
+        )
         .merge(routes_items::routes().with_state(ItemState::new(&db)))
         .merge(routes_settings::routes().with_state(SettingsState::new(&db)))
         .merge(
@@ -85,7 +101,6 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                     auth,
                 )),
         )
-        .merge(routes_login::routes().with_state(AccountState::new(&db)))
         .merge(routes_upload::routes())
         // todo: for test
         .layer(axum::middleware::map_response(main_response_mapper))

@@ -1,12 +1,12 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_embryo::{EditParams, QueryParams};
+use crate::dto::dto_embryo::{EditParams, InoutParams, QueryParams};
 use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::dto::GenericDeleteParams;
 use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
 use crate::ERPResult;
 use async_trait::async_trait;
-use sqlx::{query_builder::QueryBuilder, Execute, Postgres};
+use sqlx::{Postgres, QueryBuilder};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -23,6 +23,7 @@ pub trait EmbryoServiceTrait {
     async fn delete_item(&self, params: &GenericDeleteParams) -> ERPResult<()>;
     async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>>;
     async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()>;
+    async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -185,5 +186,10 @@ impl EmbryoServiceTrait for EmbryoService {
 
         query_builder.build().execute(self.db.get_pool()).await?;
         Ok(())
+    }
+
+    async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()> {
+        // sqlx::query!("insert into embryo_inout ")
+        todo!()
     }
 }

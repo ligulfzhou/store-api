@@ -109,7 +109,7 @@ async fn import_excel(
 async fn process_embryo_excel(
     state: &ExcelState,
     file_path: &str,
-    color_to_value: HashMap<String, i32>,
+    _color_to_value: HashMap<String, i32>,
     account: &AccountDto,
 ) -> ERPResult<()> {
     tracing::info!("import excel for embryo....");
@@ -365,7 +365,7 @@ async fn process_item_excel(
     Ok(())
 }
 
-async fn check_if_excel_data_valid(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<()> {
+async fn check_if_excel_data_valid(_state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<()> {
     // 不能为空的字段，图片（可多张），名称，颜色，大类，单位，售价，成本，编号
     // no need
 

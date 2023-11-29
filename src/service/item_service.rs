@@ -6,7 +6,6 @@ use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::sync::Arc;
 
 #[derive(Clone)]

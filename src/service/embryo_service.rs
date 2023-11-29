@@ -1,7 +1,8 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_embryo::{DeleteParams, EditParams, QueryParams};
+use crate::dto::dto_embryo::{EditParams, QueryParams};
 use crate::dto::dto_excel::EmbryoExcelDto;
+use crate::dto::GenericDeleteParams;
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::ItemsModel;
 use crate::state::embryo_state::EmbryoState;
@@ -22,7 +23,7 @@ pub trait EmbryoServiceTrait {
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<EmbryoModel>>;
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
-    async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
+    async fn delete_item(&self, params: &GenericDeleteParams) -> ERPResult<()>;
     async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>>;
 }
 
@@ -147,7 +148,7 @@ impl EmbryoServiceTrait for EmbryoService {
         Ok(())
     }
 
-    async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()> {
+    async fn delete_item(&self, params: &GenericDeleteParams) -> ERPResult<()> {
         sqlx::query!("delete from embryos where id = $1", params.id)
             .execute(self.db.get_pool())
             .await?;

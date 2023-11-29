@@ -34,8 +34,3 @@ pub struct EditParams {
     pub notes: String,
     pub number: String,
 }
-
-#[derive(Debug, Deserialize)]
-pub struct DeleteParams {
-    pub id: i32,
-}

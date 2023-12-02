@@ -1,6 +1,6 @@
 use crate::dto::dto_account::AccountDto;
 use crate::model::embryo::EmbryoModel;
-use crate::model::items::ItemsInOutModel;
+use crate::model::items::{ItemsInOutModel, ItemsModel};
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
@@ -20,7 +20,32 @@ pub struct ItemsDto {
     pub notes: String,              // 备注
     pub number: String,             // 货号
     pub barcode: String,            // 条码
+    pub count: i32,                 // 库存数
     pub create_time: NaiveDateTime, // 创建时间
+}
+
+impl ItemsDto {
+    pub fn from(item: ItemsModel, count: i32, cate1: &str, cate2: &str) -> Self {
+        Self {
+            id: item.id,
+            images: item.images,
+            name: item.name,
+            size: item.size,
+            color: item.color,
+            cate1_id: item.cate1_id,
+            cate1: cate1.to_string(),
+            cate2_id: item.cate2_id,
+            cate2: cate2.to_string(),
+            unit: item.unit,
+            price: item.price,
+            cost: item.cost,
+            notes: item.notes,
+            number: item.number,
+            barcode: item.barcode,
+            count,
+            create_time: item.create_time,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

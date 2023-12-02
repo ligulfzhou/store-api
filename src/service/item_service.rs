@@ -257,36 +257,37 @@ impl ItemServiceTrait for ItemService {
     }
 
     async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>> {
+        let item_ids = items.iter().map(|item| item.id).collect::<Vec<_>>();
+        let item_id_to_count = sqlx::query!(
+            r#"
+            select item_id, sum(count) 
+            from item_inout 
+            where item_id = any($1)
+            group by item_id 
+            "#,
+            &item_ids
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|r| (r.item_id, r.sum.unwrap_or(0) as i32))
+        .collect::<HashMap<_, _>>();
+
         let cate_id_to_name = sqlx::query!("select id, name from cates")
             .fetch_all(self.db.get_pool())
             .await?
             .into_iter()
             .map(|item| (item.id, item.name))
             .collect::<HashMap<_, _>>();
+
         let empty = "".to_string();
         let items_dto = items
             .into_iter()
             .map(|item| {
                 let cate1 = cate_id_to_name.get(&item.cate1_id).unwrap_or(&empty);
                 let cate2 = cate_id_to_name.get(&item.cate2_id).unwrap_or(&empty);
-                ItemsDto {
-                    id: item.id,
-                    images: item.images,
-                    name: item.name,
-                    size: item.size,
-                    color: item.color,
-                    cate1_id: item.cate1_id,
-                    cate1: cate1.clone(),
-                    cate2_id: item.cate2_id,
-                    cate2: cate2.clone(),
-                    unit: item.unit,
-                    price: item.price,
-                    cost: item.cost,
-                    notes: item.notes,
-                    number: item.number,
-                    barcode: item.barcode,
-                    create_time: item.create_time,
-                }
+                let count = item_id_to_count.get(&item.id).unwrap_or(&0);
+                ItemsDto::from(item, *count, cate1, cate2)
             })
             .collect::<Vec<_>>();
 

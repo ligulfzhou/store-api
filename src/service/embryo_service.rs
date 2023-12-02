@@ -4,6 +4,7 @@ use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
 use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::dto::GenericDeleteParams;
 use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
+use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
@@ -12,7 +13,8 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct EmbryoService {
-    pub db: Arc<Database>,
+    db: Arc<Database>,
+    embryo_repo: EmbryoRepository,
 }
 
 #[async_trait]
@@ -25,14 +27,17 @@ pub trait EmbryoServiceTrait {
     async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>>;
     async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()>;
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
-
     async fn embryos_to_embryo_dtos(&self, embryos: Vec<EmbryoModel>) -> ERPResult<Vec<EmbryoDto>>;
+    // async fn get_embryo_dtos_with_numbers(&self, numbers: &[String]) -> ERPResult<Vec<EmbryoDto>>;
 }
 
 #[async_trait]
 impl EmbryoServiceTrait for EmbryoService {
     fn new(db: &Arc<Database>) -> Self {
-        Self { db: Arc::clone(db) }
+        Self {
+            db: Arc::clone(db),
+            embryo_repo: EmbryoRepository::new(db),
+        }
     }
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<EmbryoModel>> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from embryos ");

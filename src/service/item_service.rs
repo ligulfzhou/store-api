@@ -1,7 +1,9 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{DeleteParams, EditParams, InoutParams, ItemsDto, QueryParams};
+use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemsInOutModel, ItemsModel};
+use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
@@ -10,7 +12,8 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ItemService {
-    pub db: Arc<Database>,
+    db: Arc<Database>,
+    embryo_repo: EmbryoRepository,
 }
 
 #[async_trait]
@@ -30,7 +33,10 @@ pub trait ItemServiceTrait {
 #[async_trait]
 impl ItemServiceTrait for ItemService {
     fn new(db: &Arc<Database>) -> Self {
-        Self { db: Arc::clone(db) }
+        Self {
+            db: Arc::clone(db),
+            embryo_repo: EmbryoRepository::new(db),
+        }
     }
 
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>> {
@@ -282,6 +288,21 @@ impl ItemServiceTrait for ItemService {
             .map(|item| (item.id, item.name))
             .collect::<HashMap<_, _>>();
 
+        let numbers = items
+            .iter()
+            .map(|item| item.number.clone())
+            .collect::<Vec<_>>();
+
+        let embryos = sqlx::query_as!(
+            EmbryoModel,
+            "select * from embryos where number=any($1)",
+            &numbers
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        let embryo_dtos = self.embryo_repo.embryos_to_embryo_dtos(embryos).await?;
+
         let empty = "".to_string();
         let items_dto = items
             .into_iter()
@@ -289,7 +310,7 @@ impl ItemServiceTrait for ItemService {
                 let cate1 = cate_id_to_name.get(&item.cate1_id).unwrap_or(&empty);
                 let cate2 = cate_id_to_name.get(&item.cate2_id).unwrap_or(&empty);
                 let count = item_id_to_count.get(&item.id).unwrap_or(&0);
-                ItemsDto::from(item, *count, cate1, cate2)
+                ItemsDto::from(item, *count, cate1, cate2, None)
             })
             .collect::<Vec<_>>();
 

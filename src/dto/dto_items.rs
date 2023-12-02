@@ -1,9 +1,10 @@
 use crate::dto::dto_account::AccountDto;
+use crate::dto::dto_embryo::EmbryoDto;
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemsInOutModel, ItemsModel};
 use chrono::NaiveDateTime;
 
-#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct ItemsDto {
     pub id: i32,
     pub images: Vec<String>,        // 商品图片
@@ -22,10 +23,17 @@ pub struct ItemsDto {
     pub barcode: String,            // 条码
     pub count: i32,                 // 库存数
     pub create_time: NaiveDateTime, // 创建时间
+    pub embryo: Option<EmbryoDto>,
 }
 
 impl ItemsDto {
-    pub fn from(item: ItemsModel, count: i32, cate1: &str, cate2: &str) -> Self {
+    pub fn from(
+        item: ItemsModel,
+        count: i32,
+        cate1: &str,
+        cate2: &str,
+        embryo: Option<EmbryoDto>,
+    ) -> Self {
         Self {
             id: item.id,
             images: item.images,
@@ -44,6 +52,7 @@ impl ItemsDto {
             barcode: item.barcode,
             count,
             create_time: item.create_time,
+            embryo,
         }
     }
 }

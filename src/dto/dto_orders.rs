@@ -5,7 +5,7 @@ use crate::model::order::OrderModel;
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Serialize, FromRow)]
 pub struct OrderDto {
     pub id: i32,
     pub account_id: i32,

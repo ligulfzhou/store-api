@@ -1,7 +1,7 @@
 use crate::model::embryo::EmbryoModel;
 use chrono::NaiveDateTime;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct EmbryoDto {
     pub id: i32,
     pub images: Vec<String>,

@@ -57,6 +57,35 @@ impl ItemsDto {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct ItemInOutDto {
+    pub id: i32,
+    pub account_id: i32,            // 经手账号id
+    pub account: String,            // 经手账号 名
+    pub item_id: i32,               // 产品名称
+    pub count: i32,                 // 数量
+    pub in_true_out_false: bool,    // 增加还是减少
+    pub via: String,                // 规格
+    pub create_time: NaiveDateTime, // 创建时间
+    pub item: Option<ItemsModel>,
+}
+
+impl ItemInOutDto {
+    pub fn from(item_in_out: ItemsInOutModel, account: &str, item: Option<ItemsModel>) -> Self {
+        Self {
+            id: item_in_out.id,
+            account_id: item_in_out.account_id,
+            account: account.to_string(),
+            item_id: item_in_out.item_id,
+            count: item_in_out.count,
+            in_true_out_false: item_in_out.in_true_out_false,
+            via: item_in_out.via,
+            create_time: item_in_out.create_time,
+            item,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
     // todo: more fields
@@ -141,15 +170,6 @@ pub struct ItemStockDto {
     pub embryo_count: i32,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ItemInOutDto {
-    pub model: ItemsInOutModel,
-    pub account: AccountDto,
-    pub item: ItemsDto,
-    // todo
-    pub embryo: EmbryoModel,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct ItemInOutQueryParams {
     pub account_id: i32,
@@ -167,6 +187,13 @@ pub struct ItemInOutQueryParams {
 pub struct InoutParams {
     pub id: i32,
     pub in_out: bool,
-    // pub via: String, todo: 应该是不需要，肯定是form
     pub count: i32,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct InoutQueryParams {
+    pub item_id: i32,
+
+    pub page: Option<i32>,
+    pub page_size: Option<i32>,
 }

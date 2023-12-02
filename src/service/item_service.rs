@@ -1,6 +1,8 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_items::{DeleteParams, EditParams, InoutParams, ItemsDto, QueryParams};
+use crate::dto::dto_items::{
+    DeleteParams, EditParams, InoutParams, ItemInOutDto, ItemsDto, QueryParams,
+};
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemsInOutModel, ItemsModel};
 use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
@@ -28,6 +30,18 @@ pub trait ItemServiceTrait {
     async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>>;
 
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
+
+    async fn inout_list_of_item(
+        &self,
+        item_id: i32,
+        account: &str,
+        page: i32,
+        page_size: i32,
+    ) -> ERPResult<Vec<ItemInOutDto>>;
+
+    async fn inout_list_of_item_count(&self, item_id: i32) -> ERPResult<i32>;
+
+    async fn get_item(&self, item_id: i32) -> ERPResult<ItemsModel>;
 }
 
 #[async_trait]
@@ -349,5 +363,50 @@ impl ItemServiceTrait for ItemService {
         .await?;
 
         Ok(())
+    }
+
+    async fn inout_list_of_item(
+        &self,
+        item_id: i32,
+        account: &str,
+        page: i32,
+        page_size: i32,
+    ) -> ERPResult<Vec<ItemInOutDto>> {
+        let item_model = self.get_item(item_id).await?;
+
+        let offset = (page - 1) * page_size;
+        let inouts = sqlx::query_as!(
+            ItemsInOutModel,
+            "select * from item_inout where item_id = $1 order by id desc offset $2 limit $3",
+            item_id,
+            offset as i64,
+            page_size as i64
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| ItemInOutDto::from(item, account, Some(item_model.clone())))
+        .collect::<Vec<_>>();
+
+        Ok(inouts)
+    }
+
+    async fn inout_list_of_item_count(&self, item_id: i32) -> ERPResult<i32> {
+        Ok(sqlx::query!(
+            "select count(1) from item_inout where item_id = $1",
+            item_id,
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .count
+        .unwrap_or(0) as i32)
+    }
+
+    async fn get_item(&self, item_id: i32) -> ERPResult<ItemsModel> {
+        Ok(
+            sqlx::query_as!(ItemsModel, "select * from items where id = $1", item_id)
+                .fetch_one(self.db.get_pool())
+                .await?,
+        )
     }
 }

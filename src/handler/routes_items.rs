@@ -1,5 +1,8 @@
+use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
-use crate::dto::dto_items::{DeleteParams, EditParams, InoutParams, ItemsDto, QueryParams};
+use crate::dto::dto_items::{
+    DeleteParams, EditParams, InoutParams, InoutQueryParams, ItemInOutDto, ItemsDto, QueryParams,
+};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::item_service::ItemServiceTrait;
 use crate::state::item_state::ItemState;
@@ -16,6 +19,7 @@ pub fn routes() -> Router<ItemState> {
         .route("/api/item/delete", post(api_item_delete))
         .route("/api/item/stock", get(api_item_stock))
         .route("/api/item/inout", post(api_item_inout))
+        .route("/api/item/inout/list", get(api_inout_list))
 }
 
 async fn api_item_list(
@@ -66,4 +70,28 @@ async fn api_item_inout(
         .add_item_inout(&params, account.id)
         .await?;
     Ok(APIEmptyResponse::new())
+}
+
+async fn api_inout_list(
+    State(state): State<ItemState>,
+    Extension(account): Extension<AccountDto>,
+    WithRejection(Query(params), _): WithRejection<Query<InoutQueryParams>, ERPError>,
+) -> ERPResult<APIListResponse<ItemInOutDto>> {
+    tracing::info!("api_item_list : /api/item/inout/list");
+
+    let items = state
+        .item_service
+        .inout_list_of_item(
+            params.item_id,
+            &account.name,
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(DEFAULT_PAGE_SIZE),
+        )
+        .await?;
+
+    let count = state
+        .item_service
+        .inout_list_of_item_count(params.item_id)
+        .await?;
+    Ok(APIListResponse::new(items, count))
 }

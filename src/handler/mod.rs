@@ -91,8 +91,6 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                     auth,
                 )),
         )
-        .merge(routes_items::routes().with_state(ItemState::new(&db)))
-        .merge(routes_settings::routes().with_state(SettingsState::new(&db)))
         .merge(
             routes_excel::routes()
                 .with_state(ExcelState::new(&db))
@@ -102,6 +100,8 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
                 )),
         )
         .merge(routes_upload::routes())
+        .merge(routes_items::routes().with_state(ItemState::new(&db)))
+        .merge(routes_settings::routes().with_state(SettingsState::new(&db)))
         // todo: for test
         .layer(axum::middleware::map_response(main_response_mapper))
         .fallback_service(routes_static::routes())

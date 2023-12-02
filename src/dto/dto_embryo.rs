@@ -1,3 +1,36 @@
+use crate::model::embryo::EmbryoModel;
+use chrono::NaiveDateTime;
+
+#[derive(Debug, Serialize)]
+pub struct EmbryoDto {
+    pub id: i32,
+    pub images: Vec<String>,
+    pub name: String,
+    pub color: String,
+    pub unit: String,
+    pub notes: String,
+    pub number: String,
+    pub create_time: NaiveDateTime,
+    // pub embryo: EmbryoModel,
+    pub count: i32,
+}
+
+impl EmbryoDto {
+    pub fn from(embryo: EmbryoModel, count: i32) -> Self {
+        Self {
+            id: embryo.id,
+            images: embryo.images,
+            name: embryo.name,
+            color: embryo.color,
+            unit: embryo.unit,
+            notes: embryo.notes,
+            number: embryo.number,
+            create_time: embryo.create_time,
+            count,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
     // pub color: String,
@@ -16,9 +49,6 @@ impl QueryParams {
         if !self.name.is_empty() {
             return false;
         }
-        // if !self.color.is_empty() {
-        //     return false;
-        // }
 
         true
     }

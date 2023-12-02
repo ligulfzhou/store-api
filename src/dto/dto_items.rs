@@ -1,3 +1,6 @@
+use crate::dto::dto_account::AccountDto;
+use crate::model::embryo::EmbryoModel;
+use crate::model::items::ItemsInOutModel;
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
@@ -80,4 +83,48 @@ pub struct EditParams {
 #[derive(Debug, Deserialize)]
 pub struct DeleteParams {
     pub id: i32,
+}
+
+//// 出入库 相关
+
+// #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+// pub struct ItemsInOutModel {
+//     pub id: i32,
+//     pub account_id: i32,            // 商品图片
+//     pub item_id: i32,               // 产品名称
+//     pub count: i32,                 // 数量
+//     pub in_true_out_false: bool,    // 增加还是减少
+//     pub via: String,                // 规格
+//     pub order_id: i32,              // 颜色
+//     pub create_time: NaiveDateTime, // 创建时间
+// }
+
+#[derive(Debug, Serialize)]
+pub struct ItemStockDto {
+    pub item: ItemsDto,
+    pub count: i32,
+    pub embryo: Option<EmbryoModel>,
+    pub embryo_count: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ItemInOutDto {
+    pub model: ItemsInOutModel,
+    pub account: AccountDto,
+    pub item: ItemsDto,
+    // todo
+    pub embryo: EmbryoModel,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ItemInOutQueryParams {
+    pub account_id: i32,
+    pub item_id: i32,
+    pub cate1_id: i32,
+    pub cate2_id: i32,
+    pub number: String,  // 货号
+    pub barcode: String, // 货号
+
+    pub page: Option<i32>,
+    pub page_size: Option<i32>,
 }

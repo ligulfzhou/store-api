@@ -1,5 +1,5 @@
 use crate::dto::dto_account::AccountDto;
-use crate::dto::dto_embryo::{EditParams, InoutParams, QueryParams};
+use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
 use crate::dto::GenericDeleteParams;
 use crate::model::embryo::EmbryoModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -22,12 +22,13 @@ pub fn routes() -> Router<EmbryoState> {
 async fn api_item_list(
     State(state): State<EmbryoState>,
     WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
-) -> ERPResult<APIListResponse<EmbryoModel>> {
+) -> ERPResult<APIListResponse<EmbryoDto>> {
     tracing::info!("api_item_list : /api/embryos");
 
     let items = state.embryo_service.get_item_list(&params).await?;
+    let embryo_dtos = state.embryo_service.embryos_to_embryo_dtos(items).await?;
     let count = state.embryo_service.get_item_count(&params).await?;
-    Ok(APIListResponse::new(items, count))
+    Ok(APIListResponse::new(embryo_dtos, count))
 }
 
 async fn api_item_edit(

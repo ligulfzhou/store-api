@@ -13,6 +13,7 @@ pub fn routes() -> Router<ItemState> {
         .route("/api/items", get(api_item_list))
         .route("/api/item/edit", post(api_item_edit))
         .route("/api/item/delete", post(api_item_delete))
+        .route("/api/item/stock", get(api_item_stock))
 }
 
 async fn api_item_list(
@@ -39,4 +40,14 @@ async fn api_item_delete(
 ) -> ERPResult<APIEmptyResponse> {
     state.item_service.delete_item(&params).await?;
     Ok(APIEmptyResponse::new())
+}
+
+async fn api_item_stock(
+    State(state): State<ItemState>,
+    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
+) -> ERPResult<APIListResponse<ItemsDto>> {
+    let items = state.item_service.get_item_list(&params).await?;
+    let items_dto = state.item_service.to_items_dto(items).await?;
+    let count = state.item_service.get_item_count(&params).await?;
+    Ok(APIListResponse::new(items_dto, count))
 }

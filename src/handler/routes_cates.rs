@@ -60,10 +60,9 @@ async fn api_delete_cate(
 #[cfg(test)]
 mod tests {
     use crate::handler::routes_login::LoginPayload;
-    use crate::ERPResult;
 
     #[tokio::test]
-    async fn test() -> ERPResult<()> {
+    async fn test() -> anyhow::Result<()> {
         let param = LoginPayload {
             account: "test".to_string(),
             password: "test".to_string(),

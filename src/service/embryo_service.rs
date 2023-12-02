@@ -1,12 +1,13 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_embryo::{EditParams, InoutParams, QueryParams};
+use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
 use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::dto::GenericDeleteParams;
 use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -24,6 +25,8 @@ pub trait EmbryoServiceTrait {
     async fn insert_multiple_items(&self, rows: &[EmbryoExcelDto]) -> ERPResult<Vec<EmbryoModel>>;
     async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()>;
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
+
+    async fn embryos_to_embryo_dtos(&self, embryos: Vec<EmbryoModel>) -> ERPResult<Vec<EmbryoDto>>;
 }
 
 #[async_trait]
@@ -189,7 +192,50 @@ impl EmbryoServiceTrait for EmbryoService {
     }
 
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()> {
-        // sqlx::query!("insert into embryo_inout ")
-        todo!()
+        sqlx::query!(
+            r#"
+            insert into embryo_inout (account_id, embryo_id, count, in_true_out_false, via) 
+            values ($1, $2, $3, $4, $5);
+            "#,
+            account_id,
+            params.id,
+            params.count,
+            true,
+            "form"
+        )
+        .execute(self.db.get_pool())
+        .await?;
+
+        Ok(())
+    }
+
+    async fn embryos_to_embryo_dtos(&self, embryos: Vec<EmbryoModel>) -> ERPResult<Vec<EmbryoDto>> {
+        let embryo_ids = embryos.iter().map(|item| item.id).collect::<Vec<_>>();
+
+        let embryo_id_to_count = sqlx::query!(
+            r#"
+            select embryo_id, sum(count) 
+            from embryo_inout 
+            where embryo_id = any($1)
+            group by embryo_id
+            "#,
+            &embryo_ids
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|r| (r.embryo_id, r.sum.unwrap_or(0) as i32))
+        .collect::<HashMap<_, _>>();
+
+        let embryo_dtos = embryos
+            .into_iter()
+            .map(|item| {
+                let count = embryo_id_to_count.get(&item.id).unwrap_or(&0);
+
+                EmbryoDto::from(item, *count)
+            })
+            .collect::<Vec<_>>();
+
+        Ok(embryo_dtos)
     }
 }

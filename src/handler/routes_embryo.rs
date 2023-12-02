@@ -1,6 +1,10 @@
+use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
-use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
+use crate::dto::dto_embryo::{
+    EditParams, EmbryoDto, EmbryoInOutDto, InoutListParams, InoutParams, QueryParams,
+};
 use crate::dto::GenericDeleteParams;
+use crate::repository::embryo_repository::EmbryoRepositoryTrait;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::embryo_service::EmbryoServiceTrait;
 use crate::state::embryo_state::EmbryoState;
@@ -16,6 +20,7 @@ pub fn routes() -> Router<EmbryoState> {
         .route("/api/embryo/edit", post(api_item_edit))
         .route("/api/embryo/delete", post(api_item_delete))
         .route("/api/embryo/inout", post(api_item_inout))
+        .route("/api/embryo/inout/list", get(api_inout_list))
 }
 
 async fn api_item_list(
@@ -61,4 +66,30 @@ async fn api_item_inout(
         .add_item_inout(&params, account.id)
         .await?;
     Ok(APIEmptyResponse::new())
+}
+
+async fn api_inout_list(
+    State(state): State<EmbryoState>,
+    Extension(account): Extension<AccountDto>,
+    WithRejection(Query(params), _): WithRejection<Query<InoutListParams>, ERPError>,
+) -> ERPResult<APIListResponse<EmbryoInOutDto>> {
+    tracing::info!("api_item_list : /api/embryo/inout/list");
+
+    let items = state
+        .embryo_service
+        .embryo_repo
+        .inout_list_of_embryo(
+            params.embryo_id,
+            &account.name,
+            params.page.unwrap_or(1),
+            params.page_size.unwrap_or(DEFAULT_PAGE_SIZE),
+        )
+        .await?;
+
+    let count = state
+        .embryo_service
+        .embryo_repo
+        .inout_list_of_embryo_count(params.embryo_id)
+        .await?;
+    Ok(APIListResponse::new(items, count))
 }

@@ -14,7 +14,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct EmbryoService {
     db: Arc<Database>,
-    embryo_repo: EmbryoRepository,
+    pub embryo_repo: EmbryoRepository,
 }
 
 #[async_trait]

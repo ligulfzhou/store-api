@@ -1,6 +1,8 @@
-use crate::model::embryo::EmbryoModel;
+use crate::dto::dto_account::AccountDto;
+use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
 use chrono::NaiveDateTime;
 
+/// model => dto
 #[derive(Debug, Serialize, Clone)]
 pub struct EmbryoDto {
     pub id: i32,
@@ -30,6 +32,41 @@ impl EmbryoDto {
         }
     }
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct EmbryoInOutDto {
+    pub id: i32,
+    pub account_id: i32,            // 经手账号id
+    pub account: String,            // 经手账号 名
+    pub embryo_id: i32,             // 产品名称
+    pub count: i32,                 // 数量
+    pub in_true_out_false: bool,    // 增加还是减少
+    pub via: String,                // 规格
+    pub create_time: NaiveDateTime, // 创建时间
+    pub embryo: Option<EmbryoModel>,
+}
+
+impl EmbryoInOutDto {
+    pub fn from(
+        embryo_in_out: EmbryoInOutModel,
+        account: &str,
+        embryo: Option<EmbryoModel>,
+    ) -> Self {
+        Self {
+            id: embryo_in_out.id,
+            account_id: embryo_in_out.account_id,
+            account: account.to_string(),
+            embryo_id: embryo_in_out.embryo_id,
+            count: embryo_in_out.count,
+            in_true_out_false: embryo_in_out.in_true_out_false,
+            via: embryo_in_out.via,
+            create_time: embryo_in_out.create_time,
+            embryo,
+        }
+    }
+}
+
+/// params
 
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
@@ -71,4 +108,12 @@ pub struct InoutParams {
     pub in_out: bool,
     // pub via: String, todo: 应该是不需要，肯定是form
     pub count: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InoutListParams {
+    pub embryo_id: i32, // 产品名称
+
+    pub page: Option<i32>,
+    pub page_size: Option<i32>,
 }

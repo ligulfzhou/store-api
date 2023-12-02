@@ -1,6 +1,6 @@
 use crate::config::database::{Database, DatabaseTrait};
-use crate::dto::dto_embryo::EmbryoDto;
-use crate::model::embryo::EmbryoModel;
+use crate::dto::dto_embryo::{EmbryoDto, EmbryoInOutDto};
+use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx;
@@ -17,6 +17,17 @@ pub trait EmbryoRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn embryos_to_embryo_dtos(&self, embryos: Vec<EmbryoModel>) -> ERPResult<Vec<EmbryoDto>>;
     async fn get_embryo_dtos_with_numbers(&self, numbers: &[String]) -> ERPResult<Vec<EmbryoDto>>;
+    async fn get_embryo(&self, embryo_id: i32) -> ERPResult<EmbryoModel>;
+
+    async fn inout_list_of_embryo(
+        &self,
+        embryo_id: i32,
+        account: &str,
+        page: i32,
+        page_size: i32,
+    ) -> ERPResult<Vec<EmbryoInOutDto>>;
+
+    async fn inout_list_of_embryo_count(&self, embryo_id: i32) -> ERPResult<i32>;
 }
 
 #[async_trait]
@@ -69,5 +80,51 @@ impl EmbryoRepositoryTrait for EmbryoRepository {
         let embryo_dtos = self.embryos_to_embryo_dtos(embryos).await?;
 
         Ok(embryo_dtos)
+    }
+
+    async fn get_embryo(&self, embryo_id: i32) -> ERPResult<EmbryoModel> {
+        Ok(sqlx::query_as!(
+            EmbryoModel,
+            "select * from embryos where id = $1",
+            embryo_id
+        )
+        .fetch_one(self.db.get_pool())
+        .await?)
+    }
+
+    async fn inout_list_of_embryo(
+        &self,
+        embryo_id: i32,
+        account: &str,
+        page: i32,
+        page_size: i32,
+    ) -> ERPResult<Vec<EmbryoInOutDto>> {
+        let embryo = self.get_embryo(embryo_id).await?;
+
+        let offset = (page - 1) * page_size;
+        let inouts =
+            sqlx::query_as!(
+            EmbryoInOutModel,
+            "select * from embryo_inout where embryo_id = $1 order by id desc offset $2 limit $3",
+            embryo_id, offset as i64, page_size as i64
+        )
+            .fetch_all(self.db.get_pool())
+            .await?
+            .into_iter()
+            .map(|item| EmbryoInOutDto::from(item, account, Some(embryo.clone())))
+            .collect::<Vec<_>>();
+
+        Ok(inouts)
+    }
+
+    async fn inout_list_of_embryo_count(&self, embryo_id: i32) -> ERPResult<i32> {
+        Ok(sqlx::query!(
+            "select count(1) from embryo_inout where embryo_id = $1",
+            embryo_id,
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .count
+        .unwrap_or(0) as i32)
     }
 }

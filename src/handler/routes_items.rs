@@ -23,9 +23,8 @@ async fn api_item_list(
     WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
 ) -> ERPResult<APIListResponse<ItemsDto>> {
     let items = state.item_service.get_item_list(&params).await?;
-    let items_dto = state.item_service.to_items_dto(items).await?;
     let count = state.item_service.get_item_count(&params).await?;
-    Ok(APIListResponse::new(items_dto, count))
+    Ok(APIListResponse::new(items, count))
 }
 
 async fn api_item_edit(
@@ -48,10 +47,12 @@ async fn api_item_stock(
     State(state): State<ItemState>,
     WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
 ) -> ERPResult<APIListResponse<ItemsDto>> {
-    let items = state.item_service.get_item_list(&params).await?;
-    let items_dto = state.item_service.to_items_dto(items).await?;
-    let count = state.item_service.get_item_count(&params).await?;
-    Ok(APIListResponse::new(items_dto, count))
+    // let items = state.item_service.get_item_list(&params).await?;
+    // let items_dto = state.item_service.to_items_dto(items).await?;
+    // let count = state.item_service.get_item_count(&params).await?;
+    // Ok(APIListResponse::new(items_dto, count))
+
+    todo!()
 }
 
 async fn api_item_inout(

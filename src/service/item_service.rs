@@ -19,7 +19,7 @@ pub struct ItemService {
 #[async_trait]
 pub trait ItemServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
-    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>>;
+    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsDto>>;
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
@@ -39,7 +39,7 @@ impl ItemServiceTrait for ItemService {
         }
     }
 
-    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsModel>> {
+    async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsDto>> {
         let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from items ");
         if !params.is_empty() {
             sql.push(" where ");
@@ -97,7 +97,9 @@ impl ItemServiceTrait for ItemService {
             .fetch_all(self.db.get_pool())
             .await?;
 
-        Ok(items)
+        let item_dtos = self.to_items_dto(items).await?;
+
+        Ok(item_dtos)
     }
 
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32> {
@@ -301,7 +303,13 @@ impl ItemServiceTrait for ItemService {
         .fetch_all(self.db.get_pool())
         .await?;
 
-        let embryo_dtos = self.embryo_repo.embryos_to_embryo_dtos(embryos).await?;
+        let number_to_embryo_dto = self
+            .embryo_repo
+            .embryos_to_embryo_dtos(embryos)
+            .await?
+            .into_iter()
+            .map(|item| (item.number.clone(), item))
+            .collect::<HashMap<_, _>>();
 
         let empty = "".to_string();
         let items_dto = items
@@ -310,7 +318,11 @@ impl ItemServiceTrait for ItemService {
                 let cate1 = cate_id_to_name.get(&item.cate1_id).unwrap_or(&empty);
                 let cate2 = cate_id_to_name.get(&item.cate2_id).unwrap_or(&empty);
                 let count = item_id_to_count.get(&item.id).unwrap_or(&0);
-                ItemsDto::from(item, *count, cate1, cate2, None)
+                let embryo = match number_to_embryo_dto.get(&item.number) {
+                    Some(emb) => Some(emb.clone()),
+                    None => None,
+                };
+                ItemsDto::from(item, *count, cate1, cate2, embryo)
             })
             .collect::<Vec<_>>();
 

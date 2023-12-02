@@ -1,7 +1,6 @@
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
 use crate::dto::GenericDeleteParams;
-use crate::model::embryo::EmbryoModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::embryo_service::EmbryoServiceTrait;
 use crate::state::embryo_state::EmbryoState;

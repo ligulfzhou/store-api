@@ -153,3 +153,11 @@ pub struct ItemInOutQueryParams {
     pub page: Option<i32>,
     pub page_size: Option<i32>,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct InoutParams {
+    pub id: i32,
+    pub in_out: bool,
+    // pub via: String, todo: 应该是不需要，肯定是form
+    pub count: i32,
+}

@@ -1,6 +1,6 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_items::{DeleteParams, EditParams, ItemsDto, QueryParams};
+use crate::dto::dto_items::{DeleteParams, EditParams, InoutParams, ItemsDto, QueryParams};
 use crate::model::items::{ItemsInOutModel, ItemsModel};
 use crate::ERPResult;
 use async_trait::async_trait;
@@ -23,6 +23,8 @@ pub trait ItemServiceTrait {
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<Vec<ItemsModel>>;
     async fn insert_multiple_items_inouts(&self, rows: &[ItemsInOutModel]) -> ERPResult<()>;
     async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>>;
+
+    async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -292,5 +294,27 @@ impl ItemServiceTrait for ItemService {
             .collect::<Vec<_>>();
 
         Ok(items_dto)
+    }
+
+    async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()> {
+        let count = match params.in_out {
+            true => params.count,
+            _ => -params.count,
+        };
+        sqlx::query!(
+            r#"
+            insert into item_inout (account_id, item_id, count, in_true_out_false, via) 
+            values ($1, $2, $3, $4, $5);
+            "#,
+            account_id,
+            params.id,
+            count,
+            params.in_out,
+            "form"
+        )
+        .execute(self.db.get_pool())
+        .await?;
+
+        Ok(())
     }
 }

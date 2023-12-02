@@ -1,11 +1,12 @@
-use crate::dto::dto_items::{DeleteParams, EditParams, ItemsDto, QueryParams};
+use crate::dto::dto_account::AccountDto;
+use crate::dto::dto_items::{DeleteParams, EditParams, InoutParams, ItemsDto, QueryParams};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::item_service::ItemServiceTrait;
 use crate::state::item_state::ItemState;
 use crate::{ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::{Extension, Json, Router};
 use axum_extra::extract::WithRejection;
 
 pub fn routes() -> Router<ItemState> {
@@ -14,6 +15,7 @@ pub fn routes() -> Router<ItemState> {
         .route("/api/item/edit", post(api_item_edit))
         .route("/api/item/delete", post(api_item_delete))
         .route("/api/item/stock", get(api_item_stock))
+        .route("/api/item/inout", post(api_item_inout))
 }
 
 async fn api_item_list(
@@ -50,4 +52,17 @@ async fn api_item_stock(
     let items_dto = state.item_service.to_items_dto(items).await?;
     let count = state.item_service.get_item_count(&params).await?;
     Ok(APIListResponse::new(items_dto, count))
+}
+
+async fn api_item_inout(
+    State(state): State<ItemState>,
+    Extension(account): Extension<AccountDto>,
+    WithRejection(Json(params), _): WithRejection<Json<InoutParams>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    tracing::info!("api_item_inout : /api/item/inout");
+    state
+        .item_service
+        .add_item_inout(&params, account.id)
+        .await?;
+    Ok(APIEmptyResponse::new())
 }

@@ -192,6 +192,10 @@ impl EmbryoServiceTrait for EmbryoService {
     }
 
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()> {
+        let count = match params.in_out {
+            true => params.count,
+            _ => -params.count,
+        };
         sqlx::query!(
             r#"
             insert into embryo_inout (account_id, embryo_id, count, in_true_out_false, via) 
@@ -199,8 +203,8 @@ impl EmbryoServiceTrait for EmbryoService {
             "#,
             account_id,
             params.id,
-            params.count,
-            true,
+            count,
+            params.in_out,
             "form"
         )
         .execute(self.db.get_pool())

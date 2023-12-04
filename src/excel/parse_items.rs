@@ -47,7 +47,7 @@ pub fn parse_items(
     let mut items = vec![];
 
     // 从第2行开始
-    for i in 2..rows + 1 {
+    for i in 7..rows + 1 {
         print!("row: {}", i);
 
         let mut cur = ItemExcelDto::default();
@@ -83,15 +83,6 @@ pub fn parse_items(
                     )));
                 }
                 continue;
-            }
-
-            if j == 13 {
-                tracing::info!("cell_value: {}", cell_value);
-
-                let count = cell_value.parse::<i32>().unwrap_or(0);
-                if count == 0 {
-                    return Err(ERPError::ExcelError(format!("第{}行的数量栏为空/0", i)));
-                }
             }
 
             match j {

@@ -197,3 +197,8 @@ pub struct InoutQueryParams {
     pub page: Option<i32>,
     pub page_size: Option<i32>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ItemSearchParams {
+    pub barcode: String,
+}

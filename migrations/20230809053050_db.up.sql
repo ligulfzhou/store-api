@@ -66,16 +66,29 @@ create index idx_items_number on items (number);
 create index idx_items_barcode on items (barcode);
 create index idx_items_cates on items (cate1_id, cate2_id);
 
-create table item_inout
+create table item_inout_bucket
 (
     id                serial PRIMARY KEY,
     account_id        integer   not null default 0,
-    item_id           integer   not null default 0,
-    count             integer   not null default 0,
+    item_id           integer   not null default 0,  -- todo: delete column
+    count             integer   not null default 0,  -- todo: delete column
     in_true_out_false bool      not null default true,
     via               text      not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
     order_id          integer   not null default 0,
     create_time       TIMESTAMP not null default now()
+);
+
+create table item_inout
+(
+    id                serial PRIMARY KEY,
+    bucket_id         integer   not null default 0,
+    item_id           integer   not null default 0,
+    count             integer   not null default 0,
+    account_id        integer   not null default 0,    -- todo: delete column
+    in_true_out_false bool      not null default true, -- todo: delete column
+    via               text      not null default '',   -- todo: delete column -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
+    order_id          integer   not null default 0,    -- todo: delete column
+    create_time       TIMESTAMP not null default now() -- todo: delete column
 );
 create index idx_item_inout_account_create_time on item_inout (account_id);
 
@@ -183,5 +196,7 @@ create table customer_types
     create_time timestamp not null default now()
 );
 create unique index uniq_customer_types_type on customer_types (ty_pe);
-insert into customer_types (ty_pe) values ('普通客户');
-insert into customer_types (ty_pe) values ('VIP客户');
+insert into customer_types (ty_pe)
+values ('普通客户');
+insert into customer_types (ty_pe)
+values ('VIP客户');

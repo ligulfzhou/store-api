@@ -1,7 +1,7 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{
-    DeleteParams, EditParams, InoutParams, ItemInOutDto, ItemsDto, QueryParams,
+    DeleteParams, EditParams, InoutParams, ItemInOutDto, ItemSearchParams, ItemsDto, QueryParams,
 };
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemsInOutModel, ItemsModel};
@@ -28,9 +28,7 @@ pub trait ItemServiceTrait {
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<Vec<ItemsModel>>;
     async fn insert_multiple_items_inouts(&self, rows: &[ItemsInOutModel]) -> ERPResult<()>;
     async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>>;
-
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
-
     async fn inout_list_of_item(
         &self,
         item_id: i32,
@@ -38,10 +36,9 @@ pub trait ItemServiceTrait {
         page: i32,
         page_size: i32,
     ) -> ERPResult<Vec<ItemInOutDto>>;
-
     async fn inout_list_of_item_count(&self, item_id: i32) -> ERPResult<i32>;
-
     async fn get_item(&self, item_id: i32) -> ERPResult<ItemsModel>;
+    async fn search_item(&self, params: &ItemSearchParams) -> ERPResult<Vec<ItemsModel>>;
 }
 
 #[async_trait]
@@ -408,5 +405,15 @@ impl ItemServiceTrait for ItemService {
                 .fetch_one(self.db.get_pool())
                 .await?,
         )
+    }
+
+    async fn search_item(&self, params: &ItemSearchParams) -> ERPResult<Vec<ItemsModel>> {
+        Ok(sqlx::query_as!(
+            ItemsModel,
+            "select * from items where barcode like '$1%' limit 50;",
+            // &params.barcode
+        )
+        .fetch_all(self.db.get_pool())
+        .await?)
     }
 }

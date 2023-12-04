@@ -1,19 +1,8 @@
 use chrono::NaiveDateTime;
+use sqlx::FromRow;
 
-/*
-图片（可多张）
-名称
-规格
-颜色
-类别（大类+小类）
-单位
-售价
-成本
-备注（可空）
-编号（6位数字，688001，688002...)
-*/
-
-#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+/* 图片（可多张）, 名称, 规格, 颜色, 类别（大类+小类）,单位, 售价, 成本, 备注（可空）, 编号（6位数字，688001，688002...)*/
+#[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
 pub struct ItemsModel {
     pub id: i32,
     pub images: Vec<String>,        // 商品图片
@@ -45,7 +34,10 @@ create table item_inout
 );
 */
 
-#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Clone, FromRow)]
+pub struct ItemInOutBucketModal {}
+
+#[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
 pub struct ItemsInOutModel {
     pub id: i32,
     pub account_id: i32,            // 商品图片

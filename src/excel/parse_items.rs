@@ -6,25 +6,30 @@ use std::collections::HashMap;
 use umya_spreadsheet::*;
 
 /*图片(可多张) 名称	颜色	产品大类	产品小类(可空) 编号	条码(可空) 规格	单位	售价	成本	备注(可空) 数量(6位数字，688001，688002...)*/
+/* 名称	颜色	产品大类 编号 单位	售价	成本 数量 */
+
+/* 序号 编号 图片 规格 名称 产品大类 产品小类 电镀&颜色 条码 数量 单位 单价 售价 金额 备注 */
 lazy_static! {
     pub static ref J_TO_NAME: HashMap<i32, &'static str> = vec![
-        (1, "图片"),
-        (2, "名称"),
-        (3, "颜色"),
-        (4, "产品大类"),
-        (5, "产品小类"),
-        (6, "编号"),
-        (7, "条码"),
-        (8, "规格"),
-        (9, "单位"),
-        (10, "售价"),
-        (11, "成本"),
-        (12, "备注"),
-        (13, "数量")
+        (1, "序号"),
+        (2, "编号"),
+        (3, "图片"),
+        (4, "规格"),
+        (5, "名称"),
+        (6, "产品大类"),
+        (7, "产品小类"),
+        (8, "电镀&颜色"),
+        (9, "条码"),
+        (10, "数量"),
+        (11, "单位"),
+        (12, "售价"),
+        (13, "成本"),
+        (14, "金额"),
+        (15, "备注")
     ]
     .into_iter()
     .collect();
-    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 3, 4, 6, 9, 10, 11, 13];
+    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 12, 13];
 }
 
 pub fn parse_items(
@@ -49,7 +54,8 @@ pub fn parse_items(
 
         let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
-            if j == 1 {
+            // 图片在第3列
+            if j == 3 {
                 images = items_sheet.get_images((j, i));
                 print!("images count: {}", images.len());
             }
@@ -89,19 +95,18 @@ pub fn parse_items(
             }
 
             match j {
-                // 1 => cur.name = cell_value.trim().to_string(),
-                2 => cur.name = cell_value.trim().to_string(),
-                3 => cur.color = cell_value.trim().to_string().to_ascii_uppercase(),
-                4 => cur.cates1 = cell_value.trim().to_string(),
-                5 => cur.cates2 = cell_value.trim().to_string(),
-                6 => cur.number = cell_value.trim().to_string(),
-                7 => cur.barcode = cell_value.trim().to_string(),
-                8 => cur.size = cell_value.trim().to_string(),
-                9 => cur.unit = cell_value.trim().to_string(),
-                10 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
-                11 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
-                12 => cur.notes = cell_value.trim().to_string(),
-                13 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
+                2 => cur.number = cell_value.trim().to_string(),
+                4 => cur.size = cell_value.trim().to_string(),
+                5 => cur.name = cell_value.trim().to_string(),
+                6 => cur.cates1 = cell_value.trim().to_string(),
+                7 => cur.cates2 = cell_value.trim().to_string(),
+                8 => cur.color = cell_value.trim().to_string().to_ascii_uppercase(),
+                9 => cur.barcode = cell_value.trim().to_string(),
+                10 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
+                11 => cur.unit = cell_value.trim().to_string(),
+                12 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
+                13 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
+                15 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
         }

@@ -5,7 +5,7 @@ use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
 use crate::model::cates::CateModel;
 use crate::model::embryo::EmbryoInOutModel;
-use crate::model::items::{ItemsInOutModel, ItemsModel};
+use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::service::embryo_service::EmbryoServiceTrait;
@@ -208,6 +208,9 @@ async fn process_item_excel(
 ) -> ERPResult<()> {
     tracing::info!("import excel....");
     let items = parse_items(&file_path, color_to_value)?;
+    if items.len() == 0 {
+        return Ok(());
+    }
 
     // 检查数据的正确性
     check_if_excel_data_valid(&state, &items).await?;
@@ -219,6 +222,10 @@ async fn process_item_excel(
     let barcode_to_count = items
         .iter()
         .map(|item| (item.barcode.clone(), item.count))
+        .collect::<HashMap<_, _>>();
+    let barcode_to_price = items
+        .iter()
+        .map(|item| (item.barcode.clone(), item.price))
         .collect::<HashMap<_, _>>();
 
     // 用barcode去重
@@ -337,20 +344,34 @@ async fn process_item_excel(
         }
     }
 
+    // 先添加库存bucket
+    let bucket = state
+        .item_service
+        .add_inout_bucket(ItemInOutBucketModal {
+            id: 0,
+            account_id: account.id,
+            in_true_out_false: true,
+            via: "excel".to_string(),
+            order_id: 0,
+            create_time: Default::default(),
+        })
+        .await?;
+    let bucket_id = bucket.id;
+
     // 添加库存
     let ins = barcode_to_count
         .into_iter()
         .map(|(barcode, count)| {
             let item_id = barcode_to_id.get(&barcode).unwrap_or(&0);
+            let current_price = barcode_to_price.get(&barcode).unwrap_or(&0);
+            let current_total = *current_price * count;
             ItemsInOutModel {
                 id: 0,
-                account_id: account.id,
+                bucket_id,
                 item_id: *item_id,
                 count,
-                in_true_out_false: true,
-                via: "excel".to_string(),
-                order_id: 0,
-                create_time: Default::default(),
+                current_price: *current_price,
+                current_total,
             }
         })
         .collect::<Vec<_>>();
@@ -358,7 +379,7 @@ async fn process_item_excel(
     if !ins.is_empty() {
         state
             .item_service
-            .insert_multiple_items_inouts(&ins)
+            .insert_multiple_items_inouts(&ins, bucket_id)
             .await?;
     }
 

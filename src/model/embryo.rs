@@ -8,6 +8,7 @@ pub struct EmbryoModel {
     pub color: String,
     pub unit: String,
     pub notes: String,
+    pub cost: i32,
     pub number: String,
     pub create_time: NaiveDateTime,
 }

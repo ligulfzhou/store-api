@@ -4,21 +4,23 @@ use crate::{ERPError, ERPResult};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-/* 图片(可多张)编号，图片，名称，颜色，单位，数量 */
-
+/* 图片,编号,名称,颜色,单位,数量,备注 */
 lazy_static! {
     pub static ref J_TO_NAME: HashMap<i32, &'static str> = vec![
-        (1, "图片"),
+        (1, "序号"),
         (2, "编号"),
-        (3, "名称"),
-        (4, "颜色"),
-        (5, "单位"),
+        (3, "图片"),
+        (4, "名称"),
+        (5, "电镀&颜色"),
         (6, "数量"),
-        (7, "备注")
+        (7, "单位"),
+        (8, "单价"),
+        (9, "金额"),
+        (10, "备注")
     ]
     .into_iter()
     .collect();
-    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 3, 4, 5, 6];
+    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 4, 5, 6, 7];
 }
 
 pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
@@ -40,7 +42,8 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
 
         let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
-            if j == 1 {
+            // 图片在第3列
+            if j == 3 {
                 images = items_sheet.get_images((j, i));
                 print!("images count: {}", images.len());
             }
@@ -70,22 +73,14 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
                 continue;
             }
 
-            if j == 6 {
-                tracing::info!("cell_value: {}", cell_value);
-
-                let count = cell_value.parse::<i32>().unwrap_or(0);
-                if count == 0 {
-                    return Err(ERPError::ExcelError(format!("第{}行的数量栏为空/0", i)));
-                }
-            }
-
             match j {
                 2 => cur.number = cell_value.trim().to_string(),
-                3 => cur.name = cell_value.trim().to_string(),
-                4 => cur.color = cell_value.trim().to_string(),
-                5 => cur.unit = cell_value.trim().to_string(),
+                4 => cur.name = cell_value.trim().to_string(),
+                5 => cur.color = cell_value.trim().to_string(),
                 6 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
-                7 => cur.notes = cell_value.trim().to_string(),
+                7 => cur.unit = cell_value.trim().to_string(),
+                8 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
+                10 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
         }

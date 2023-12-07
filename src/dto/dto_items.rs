@@ -1,7 +1,6 @@
-use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_embryo::EmbryoDto;
 use crate::model::embryo::EmbryoModel;
-use crate::model::items::{ItemsInOutModel, ItemsModel};
+use crate::model::items::ItemsModel;
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
@@ -58,7 +57,19 @@ impl ItemsDto {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
-pub struct ItemInOutDto {
+pub struct ItemInOutBucketDto {
+    pub id: i32,
+    pub account_id: i32,            // 经手账号id
+    pub account: String,            // 经手账号 名
+    pub in_true_out_false: bool,    // 增加还是减少
+    pub via: String,                // 规格
+    pub create_time: NaiveDateTime, // 创建时间
+
+    pub items: Vec<ItemInOutDto>, // todo: 可能没必要再搞一个没哟accout 名字的struct 出来
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct SingleItemInOutDto {
     pub id: i32,
     pub account_id: i32,            // 经手账号id
     pub account: String,            // 经手账号 名
@@ -70,21 +81,39 @@ pub struct ItemInOutDto {
     pub item: Option<ItemsModel>,
 }
 
-impl ItemInOutDto {
-    pub fn from(item_in_out: ItemsInOutModel, account: &str, item: Option<ItemsModel>) -> Self {
-        Self {
-            id: item_in_out.id,
-            account_id: item_in_out.account_id,
-            account: account.to_string(),
-            item_id: item_in_out.item_id,
-            count: item_in_out.count,
-            in_true_out_false: item_in_out.in_true_out_false,
-            via: item_in_out.via,
-            create_time: item_in_out.create_time,
-            item,
-        }
-    }
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
+pub struct ItemInOutDto {
+    pub id: i32,
+    pub bucket_id: i32,
+    pub item_id: i32,
+    pub count: i32,
+    pub current_price: i32,
+    pub current_total: i32,
+
+    pub item_name: String,
+    pub account_id: i32,         // 经手账号id
+    pub account: String,         // 经手账号 名
+    pub in_true_out_false: bool, // 增加还是减少
+    pub via: String,             // 规格
+    pub order_id: i32,
+    pub create_time: NaiveDateTime, // 创建时间
 }
+
+// impl ItemInOutDto {
+//     pub fn from(item_in_out: ItemsInOutModel, account: &str, item: Option<ItemsModel>) -> Self {
+//         Self {
+//             id: item_in_out.id,
+//             account_id: item_in_out.item_id, // todo
+//             account: account.to_string(),
+//             item_id: item_in_out.item_id,
+//             count: item_in_out.count,
+//             in_true_out_false: item_in_out.in_true_out_false,
+//             via: item_in_out.via,
+//             create_time: item_in_out.create_time,
+//             item,
+//         }
+//     }
+// }
 
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
@@ -181,6 +210,33 @@ pub struct ItemInOutQueryParams {
 
     pub page: Option<i32>,
     pub page_size: Option<i32>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct InoutBucketParams {
+    pub item_id: i32,
+    pub in_out: Option<bool>,
+    pub create_time_st: String,
+    pub create_time_ed: String,
+
+    pub page: Option<i32>,
+    pub page_size: Option<i32>,
+}
+
+impl InoutBucketParams {
+    pub fn is_empty(&self) -> bool {
+        if self.item_id != 0 {
+            return false;
+        }
+
+        if self.in_out.is_some() {
+            return false;
+        }
+        if self.create_time_ed.is_empty() && self.create_time_st.is_empty() {
+            return false;
+        }
+        true
+    }
 }
 
 #[derive(Deserialize, Debug)]

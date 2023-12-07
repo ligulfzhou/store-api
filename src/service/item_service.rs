@@ -1,14 +1,15 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{
-    DeleteParams, EditParams, InoutParams, ItemInOutDto, ItemSearchParams, ItemsDto, QueryParams,
+    DeleteParams, EditParams, InoutBucketParams, InoutParams, ItemInOutBucketDto, ItemInOutDto,
+    ItemSearchParams, ItemsDto, QueryParams,
 };
 use crate::model::embryo::EmbryoModel;
-use crate::model::items::{ItemsInOutModel, ItemsModel};
+use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
 use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
-use crate::ERPResult;
+use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
-use sqlx::{Postgres, QueryBuilder};
+use sqlx::{query_as, Postgres, QueryBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -26,7 +27,11 @@ pub trait ItemServiceTrait {
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<Vec<ItemsModel>>;
-    async fn insert_multiple_items_inouts(&self, rows: &[ItemsInOutModel]) -> ERPResult<()>;
+    async fn insert_multiple_items_inouts(
+        &self,
+        rows: &[ItemsInOutModel],
+        bucket_id: i32,
+    ) -> ERPResult<()>;
     async fn to_items_dto(&self, items: Vec<ItemsModel>) -> ERPResult<Vec<ItemsDto>>;
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
     async fn inout_list_of_item(
@@ -39,6 +44,19 @@ pub trait ItemServiceTrait {
     async fn inout_list_of_item_count(&self, item_id: i32) -> ERPResult<i32>;
     async fn get_item(&self, item_id: i32) -> ERPResult<ItemsModel>;
     async fn search_item(&self, params: &ItemSearchParams) -> ERPResult<Vec<ItemsModel>>;
+    async fn inout_bucket_list(
+        &self,
+        params: &InoutBucketParams,
+    ) -> ERPResult<Vec<ItemInOutBucketDto>>;
+    async fn add_inout_bucket(
+        &self,
+        bucket: ItemInOutBucketModal,
+    ) -> ERPResult<ItemInOutBucketModal>;
+    async fn insert_multiple_items_inouts_v2(
+        &self,
+        rows: &[ItemsInOutModel],
+        bucket_id: i32,
+    ) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -258,17 +276,21 @@ impl ItemServiceTrait for ItemService {
         Ok(items)
     }
 
-    async fn insert_multiple_items_inouts(&self, rows: &[ItemsInOutModel]) -> ERPResult<()> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into item_inout (account_id, item_id, count, in_true_out_false, via, order_id) ");
+    async fn insert_multiple_items_inouts(
+        &self,
+        rows: &[ItemsInOutModel],
+        bucket_id: i32,
+    ) -> ERPResult<()> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "insert into item_inout (bucket_id, item_id, count, current_price, current_total) ",
+        );
 
         query_builder.push_values(rows, |mut b, item| {
-            b.push_bind(item.account_id)
+            b.push_bind(bucket_id)
                 .push_bind(item.item_id)
                 .push_bind(item.count)
-                .push_bind(item.in_true_out_false)
-                .push_bind(item.via.clone())
-                .push_bind(item.order_id);
+                .push_bind(item.current_price)
+                .push_bind(item.current_total);
         });
 
         query_builder.push(" returning id;");
@@ -341,20 +363,40 @@ impl ItemServiceTrait for ItemService {
     }
 
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()> {
+        let item = sqlx::query_as!(ItemsModel, "select * from items where id=$1", params.id)
+            .fetch_one(self.db.get_pool())
+            .await
+            .map_err(|_err| ERPError::NotFound("产品未找到".to_string()))?;
+
         let count = match params.in_out {
             true => params.count,
             _ => -params.count,
         };
+
+        let bucket_id = sqlx::query!(
+            r#"
+            insert into item_inout_bucket (account_id, in_true_out_false, via, order_id)
+            values ($1, $2, $3, $4) 
+            returning id"#,
+            account_id,
+            params.in_out,
+            "form",
+            0
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .id;
+
         sqlx::query!(
             r#"
-            insert into item_inout (account_id, item_id, count, in_true_out_false, via) 
+            insert into item_inout (bucket_id, item_id, count, current_price, current_total) 
             values ($1, $2, $3, $4, $5);
             "#,
-            account_id,
+            bucket_id,
             params.id,
             count,
-            params.in_out,
-            "form"
+            item.price,
+            item.price * count
         )
         .execute(self.db.get_pool())
         .await?;
@@ -373,17 +415,23 @@ impl ItemServiceTrait for ItemService {
 
         let offset = (page - 1) * page_size;
         let inouts = sqlx::query_as!(
-            ItemsInOutModel,
-            "select * from item_inout where item_id = $1 order by id desc offset $2 limit $3",
+            ItemInOutDto,
+            r#"
+            select 
+                ii.*, i.name as item_name,
+                iib.account_id, iib.in_true_out_false, iib.via, iib.order_id, iib.create_time,
+                a.name as account
+            from items i, item_inout ii, item_inout_bucket iib, accounts a 
+            where ii.bucket_id=iib.id and iib.account_id = a.id
+                and ii.item_id = $1 
+            order by ii.id desc offset $2 limit $3
+            "#,
             item_id,
             offset as i64,
             page_size as i64
         )
         .fetch_all(self.db.get_pool())
-        .await?
-        .into_iter()
-        .map(|item| ItemInOutDto::from(item, account, Some(item_model.clone())))
-        .collect::<Vec<_>>();
+        .await?;
 
         Ok(inouts)
     }
@@ -415,5 +463,105 @@ impl ItemServiceTrait for ItemService {
         )
         .fetch_all(self.db.get_pool())
         .await?)
+    }
+
+    async fn inout_bucket_list(
+        &self,
+        params: &InoutBucketParams,
+    ) -> ERPResult<Vec<ItemInOutBucketDto>> {
+        // querybuilder
+        let mut sql: QueryBuilder<Postgres> =
+            QueryBuilder::new("select * from item_inout_bucket; ");
+        if !params.is_empty() {
+            sql.push(" where ");
+
+            let mut and = "";
+
+            // todo: 如果有item_id, sql语句完全不一样
+            // if !params.item_id.is_empty() {
+            //     sql.push(&format!("{}  = ", and))
+            //         .push_bind(&params.name);
+            //     and = " and ";
+            // }
+
+            if params.in_out.is_some() {
+                sql.push(&format!("{} in_true_out_false = ", and))
+                    .push_bind(params.in_out.unwrap_or(true));
+                and = " and ";
+            }
+
+            if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+                sql.push(&format!(" {} create_time >= ", and))
+                    .push_bind(&params.create_time_st)
+                    .push(&format!(" {} create_time <= ", and))
+                    .push_bind(&params.create_time_ed);
+            }
+        }
+
+        let page = params.page.unwrap_or(1);
+        let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+
+        sql.push(format!(
+            " order by id desc limit {} offset {}",
+            page_size, offset
+        ));
+
+        let items = sql
+            .build_query_as::<ItemInOutBucketModal>()
+            .fetch_all(self.db.get_pool())
+            .await?;
+
+        let bucket_ids = items.iter().map(|item| item.id).collect::<Vec<i32>>();
+        let inouts = sqlx::query_as!(
+            ItemsInOutModel,
+            "select * from item_inout where bucket_id = any($1)",
+            &bucket_ids
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        let account_ids = items.iter().map(|item| item.account_id).collect::<Vec<_>>();
+        let account_id_to_name = sqlx::query!(
+            "select id, name from accounts where id = any($1)",
+            &account_ids
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| (item.id, item.name))
+        .collect::<HashMap<_, _>>();
+
+        todo!()
+    }
+
+    async fn add_inout_bucket(
+        &self,
+        bucket: ItemInOutBucketModal,
+    ) -> ERPResult<ItemInOutBucketModal> {
+        let bucket = sqlx::query_as!(
+            ItemInOutBucketModal,
+            r#"
+            insert into item_inout_bucket (account_id, in_true_out_false, via, order_id) 
+            values ($1, $2, $3, $4) 
+            returning *
+            "#,
+            bucket.account_id,
+            bucket.in_true_out_false,
+            bucket.via,
+            bucket.order_id
+        )
+        .fetch_one(self.db.get_pool())
+        .await?;
+
+        Ok(bucket)
+    }
+
+    async fn insert_multiple_items_inouts_v2(
+        &self,
+        rows: &[ItemsInOutModel],
+        bucket_id: i32,
+    ) -> ERPResult<()> {
+        todo!()
     }
 }

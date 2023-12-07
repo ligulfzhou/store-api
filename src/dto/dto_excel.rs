@@ -30,6 +30,8 @@ pub struct EmbryoExcelDto {
     pub unit: String,
     // 单位
     pub count: i32,
+    // 单价
+    pub cost: i32,
     // 数量
     pub notes: String,
 }

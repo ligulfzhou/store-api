@@ -4,7 +4,7 @@ use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto};
 use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
 use crate::model::cates::CateModel;
-use crate::model::embryo::EmbryoInOutModel;
+use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoInOutModel};
 use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
@@ -123,6 +123,10 @@ async fn process_embryo_excel(
         .iter()
         .map(|item| (item.number.clone(), item.count))
         .collect::<HashMap<_, _>>();
+    let number_to_cost = items
+        .iter()
+        .map(|item| (item.number.clone(), item.cost))
+        .collect::<HashMap<_, _>>();
 
     let numbers = items
         .iter()
@@ -166,18 +170,31 @@ async fn process_embryo_excel(
             });
     }
 
+    let bucket_id = state
+        .embryo_service
+        .add_inout_bucket(EmbryoInOutBucketModal {
+            id: 0,
+            account_id: account.id,
+            in_true_out_false: true,
+            via: "excel".to_string(),
+            create_time: Default::default(),
+        })
+        .await?
+        .id;
+
     let ins = number_to_count
         .into_iter()
         .map(|(number, count)| {
             let id = number_to_id.get(&number).unwrap_or(&0);
+            let cost = number_to_cost.get(&number).unwrap_or(&0);
+            let current_total = *cost * count;
             EmbryoInOutModel {
                 id: 0,
-                account_id: account.id,
+                bucket_id,
                 embryo_id: *id,
                 count,
-                in_true_out_false: true,
-                via: "excel".to_string(),
-                create_time: Default::default(),
+                current_price: *cost,
+                current_total,
             }
         })
         .collect::<Vec<_>>();

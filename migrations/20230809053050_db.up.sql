@@ -104,16 +104,29 @@ create table embryos
 );
 
 -- 库存胚 出入库
-create table embryo_inout
+create table embryo_inout_bucket
 (
     id                serial PRIMARY KEY,
     account_id        integer   not null default 0,
-    embryo_id         integer   not null default 0,
-    count             integer   not null default 0,
     in_true_out_false bool      not null default true,
-    via               text      not null default '', -- form/excel
+    via               text      not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
     create_time       TIMESTAMP not null default now()
 );
+create index idx_embryo_inout_bucket_inout_via_account_id on embryo_inout_bucket (in_true_out_false, via, account_id);
+
+
+-- 库存胚 出入库
+create table embryo_inout
+(
+    id            serial PRIMARY KEY,
+    bucket_id     integer not null default 0,
+    embryo_id     integer not null default 0,
+    count         integer not null default 0,
+    current_price integer not null default 0, -- 当时的价格
+    current_total integer not null default 0  -- 当时的总额
+);
+create index idx_embryo_inout_embryo_id on embryo_inout (embryo_id);
+create index idx_embryo_inout_bucket_id on embryo_inout (bucket_id);
 
 
 -- 账号
@@ -184,7 +197,7 @@ values ('14K金', 2);
 insert into color_settings(color, value)
 values ('18K金', 3);
 insert into color_settings(color, value)
-values ('钢', 4);
+values ('钢色', 4);
 
 create table customer_types
 (

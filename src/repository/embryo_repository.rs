@@ -102,17 +102,25 @@ impl EmbryoRepositoryTrait for EmbryoRepository {
         let embryo = self.get_embryo(embryo_id).await?;
 
         let offset = (page - 1) * page_size;
-        let inouts =
-            sqlx::query_as!(
-            EmbryoInOutModel,
-            "select * from embryo_inout where embryo_id = $1 order by id desc offset $2 limit $3",
-            embryo_id, offset as i64, page_size as i64
+        let inouts = sqlx::query_as!(
+            EmbryoInOutDto,
+            r#"
+            select 
+                ei.*, 
+                eib.in_true_out_false, eib.via, eib.create_time, eib.account_id,
+                e.name as embryo_name, 
+                a.name as account
+            from 
+                embryo_inout ei, accounts a, embryo_inout_bucket eib, embryos e
+            where ei.bucket_id = eib.id and eib.account_id = a.id and ei.embryo_id=e.id 
+                and ei.embryo_id = $1 order by id desc offset $2 limit $3
+            "#,
+            embryo_id,
+            offset as i64,
+            page_size as i64
         )
-            .fetch_all(self.db.get_pool())
-            .await?
-            .into_iter()
-            .map(|item| EmbryoInOutDto::from(item, account, Some(embryo.clone())))
-            .collect::<Vec<_>>();
+        .fetch_all(self.db.get_pool())
+        .await?;
 
         Ok(inouts)
     }

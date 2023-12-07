@@ -13,3 +13,4 @@ drop table if exists color_settings;
 drop table if exists customer_types;
 drop table if exists embryos;
 drop table if exists embryo_inout;
+drop table if exists embryo_inout_bucket;

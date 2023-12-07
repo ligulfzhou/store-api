@@ -3,9 +3,9 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
 use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::dto::GenericDeleteParams;
-use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
+use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoInOutModel, EmbryoModel};
 use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
-use crate::ERPResult;
+use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
@@ -29,6 +29,10 @@ pub trait EmbryoServiceTrait {
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()>;
     async fn embryos_to_embryo_dtos(&self, embryos: Vec<EmbryoModel>) -> ERPResult<Vec<EmbryoDto>>;
     // async fn get_embryo_dtos_with_numbers(&self, numbers: &[String]) -> ERPResult<Vec<EmbryoDto>>;
+    async fn add_inout_bucket(
+        &self,
+        bucket: EmbryoInOutBucketModal,
+    ) -> ERPResult<EmbryoInOutBucketModal>;
 }
 
 #[async_trait]
@@ -179,15 +183,15 @@ impl EmbryoServiceTrait for EmbryoService {
 
     async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "insert into embryo_inout (account_id, embryo_id, count, in_true_out_false, via) ",
+            "insert into embryo_inout (bucket_id, embryo_id, count, current_price, current_total) ",
         );
 
         query_builder.push_values(rows, |mut b, item| {
-            b.push_bind(item.account_id)
+            b.push_bind(item.bucket_id)
                 .push_bind(item.embryo_id)
                 .push_bind(item.count)
-                .push_bind(item.in_true_out_false)
-                .push_bind(item.via.clone());
+                .push_bind(item.current_price)
+                .push_bind(item.current_total);
         });
 
         query_builder.push(" returning id;");
@@ -197,20 +201,44 @@ impl EmbryoServiceTrait for EmbryoService {
     }
 
     async fn add_item_inout(&self, params: &InoutParams, account_id: i32) -> ERPResult<()> {
+        let embryo = sqlx::query_as!(
+            EmbryoModel,
+            "select * from embryos where id = $1",
+            params.id
+        )
+        .fetch_one(self.db.get_pool())
+        .await
+        .map_err(|_err| ERPError::NotFound("库存胚未找到".to_string()))?;
+
         let count = match params.in_out {
             true => params.count,
             _ => -params.count,
         };
-        sqlx::query!(
+
+        let bucket_id = sqlx::query!(
             r#"
-            insert into embryo_inout (account_id, embryo_id, count, in_true_out_false, via) 
-            values ($1, $2, $3, $4, $5);
+            insert into embryo_inout_bucket (account_id, in_true_out_false, via)
+            values ($1, $2, $3) 
+            returning id
             "#,
             account_id,
-            params.id,
-            count,
             params.in_out,
             "form"
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .id;
+
+        sqlx::query!(
+            r#"
+            insert into embryo_inout (bucket_id, embryo_id, count, current_price, current_total) 
+            values ($1, $2, $3, $4, $5);
+            "#,
+            bucket_id,
+            params.id,
+            count,
+            embryo.cost,
+            embryo.cost * count
         )
         .execute(self.db.get_pool())
         .await?;
@@ -246,5 +274,26 @@ impl EmbryoServiceTrait for EmbryoService {
             .collect::<Vec<_>>();
 
         Ok(embryo_dtos)
+    }
+
+    async fn add_inout_bucket(
+        &self,
+        bucket: EmbryoInOutBucketModal,
+    ) -> ERPResult<EmbryoInOutBucketModal> {
+        let bucket = sqlx::query_as!(
+            EmbryoInOutBucketModal,
+            r#"
+            insert into embryo_inout_bucket (account_id, in_true_out_false, via)
+            values ($1, $2, $3)
+            returning *
+            "#,
+            bucket.account_id,
+            bucket.in_true_out_false,
+            bucket.via,
+        )
+        .fetch_one(self.db.get_pool())
+        .await?;
+
+        Ok(bucket)
     }
 }

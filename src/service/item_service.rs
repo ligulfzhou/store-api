@@ -52,11 +52,6 @@ pub trait ItemServiceTrait {
         &self,
         bucket: ItemInOutBucketModal,
     ) -> ERPResult<ItemInOutBucketModal>;
-    async fn insert_multiple_items_inouts_v2(
-        &self,
-        rows: &[ItemsInOutModel],
-        bucket_id: i32,
-    ) -> ERPResult<()>;
 }
 
 #[async_trait]
@@ -555,13 +550,5 @@ impl ItemServiceTrait for ItemService {
         .await?;
 
         Ok(bucket)
-    }
-
-    async fn insert_multiple_items_inouts_v2(
-        &self,
-        rows: &[ItemsInOutModel],
-        bucket_id: i32,
-    ) -> ERPResult<()> {
-        todo!()
     }
 }

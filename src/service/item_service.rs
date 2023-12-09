@@ -1,3 +1,4 @@
+use crate::common::items::calculate_barcode;
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{
@@ -12,7 +13,6 @@ use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tower_http::classify::ServerErrorsFailureClass;
 
 #[derive(Clone)]
 pub struct ItemService {
@@ -192,6 +192,21 @@ impl ItemServiceTrait for ItemService {
         match params.id {
             0 => {
                 // 新增item
+                let barcode = match params.barcode.is_empty() {
+                    true => {
+                        let value = sqlx::query!(
+                            r#"
+                        select value from color_settings where color = $1;
+                        "#,
+                            &params.color
+                        )
+                        .fetch_one(self.db.get_pool())
+                        .await?
+                        .value;
+                        calculate_barcode(&params.number, value, params.price)
+                    }
+                    false => params.barcode.clone(),
+                };
                 sqlx::query!(
                     r#"
                     insert into items (images, name, size, color, cate1_id, cate2_id, unit,
@@ -209,7 +224,7 @@ impl ItemServiceTrait for ItemService {
                     params.cost,
                     params.notes,
                     params.number,
-                    params.barcode,
+                    barcode,
                 )
                 .execute(self.db.get_pool())
                 .await?;
@@ -277,7 +292,6 @@ impl ItemServiceTrait for ItemService {
             .build_query_as::<ItemsModel>()
             .fetch_all(self.db.get_pool())
             .await?;
-        // query_builder.build().execute(self.db.get_pool()).await?;
 
         Ok(items)
     }
@@ -428,8 +442,8 @@ impl ItemServiceTrait for ItemService {
                 iib.account_id, iib.in_true_out_false, iib.via, iib.order_id, iib.create_time,
                 a.name as account
             from items i, item_inout ii, item_inout_bucket iib, accounts a 
-            where ii.bucket_id=iib.id and iib.account_id = a.id
-                and ii.item_id = $1 
+            where ii.bucket_id=iib.id and iib.account_id = a.id and i.id = ii.item_id
+                and i.id = $1 
             order by ii.id desc offset $2 limit $3
             "#,
             item_id,

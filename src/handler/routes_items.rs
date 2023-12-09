@@ -4,7 +4,6 @@ use crate::dto::dto_items::{
     DeleteParams, EditParams, InoutBucketParams, InoutParams, InoutQueryParams, ItemInOutBucketDto,
     ItemInOutDto, ItemSearchParams, ItemStockOutMultiParams, ItemsDto, QueryParams,
 };
-use crate::model::items::ItemsModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::item_service::ItemServiceTrait;
 use crate::state::item_state::ItemState;
@@ -23,7 +22,7 @@ pub fn routes() -> Router<ItemState> {
         .route("/api/item/stock/out", post(api_item_stock_out))
         .route("/api/item/inout", post(api_item_inout))
         .route("/api/item/inout/list", get(api_inout_list))
-        .route("/api/item/inout/group/list", get(api_inout_group_list))
+        .route("/api/item/inout/group/list", get(api_inout_group_list)) // 出入库列表
         .route("/api/item/search", get(api_item_search))
 }
 
@@ -131,14 +130,15 @@ async fn api_inout_list(
 
 async fn api_item_search(
     State(state): State<ItemState>,
-    // Extension(_account): Extension<AccountDto>,
     WithRejection(Query(params), _): WithRejection<Query<ItemSearchParams>, ERPError>,
-) -> ERPResult<APIListResponse<ItemsModel>> {
+) -> ERPResult<APIListResponse<ItemsDto>> {
     tracing::info!("api_item_list : /api/item/search");
 
     let items = state.item_service.search_item(&params).await?;
     let len = items.len() as i32;
-    Ok(APIListResponse::new(items, len))
+    let items_dto = state.item_service.to_items_dto(items).await?;
+
+    Ok(APIListResponse::new(items_dto, len))
 }
 
 #[cfg(test)]

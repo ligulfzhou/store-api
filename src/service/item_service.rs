@@ -490,14 +490,10 @@ impl ItemServiceTrait for ItemService {
         params: &InoutBucketParams,
     ) -> ERPResult<Vec<ItemInOutBucketDto>> {
         // todo, 还未算总和
-        // query_builder
-        let mut sql: QueryBuilder<Postgres> =
-            QueryBuilder::new("select * from item_inout_bucket; ");
+        let mut sql: QueryBuilder<Postgres> = QueryBuilder::new("select * from item_inout_bucket ");
         if !params.is_empty() {
             sql.push(" where ");
-
             let mut and = "";
-
             // todo: 如果有item_id, sql语句完全不一样
             // if !params.item_id.is_empty() {
             //     sql.push(&format!("{}  = ", and))
@@ -511,12 +507,13 @@ impl ItemServiceTrait for ItemService {
                 and = " and ";
             }
 
-            if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
-                sql.push(&format!(" {} create_time >= ", and))
-                    .push_bind(&params.create_time_st)
-                    .push(&format!(" {} create_time <= ", and))
-                    .push_bind(&params.create_time_ed);
-            }
+            // todo
+            // if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+            //     sql.push(&format!(" {} create_time >= ", and))
+            //         .push_bind(&params.create_time_st)
+            //         .push(&format!(" {} create_time <= ", and))
+            //         .push_bind(&params.create_time_ed);
+            // }
         }
 
         let page = params.page.unwrap_or(1);
@@ -524,8 +521,7 @@ impl ItemServiceTrait for ItemService {
         let offset = (page - 1) * page_size;
 
         sql.push(format!(
-            " order by id desc limit {} offset {}",
-            page_size, offset
+            " order by id desc limit {page_size} offset {offset}",
         ));
 
         let buckets = sql
@@ -534,13 +530,33 @@ impl ItemServiceTrait for ItemService {
             .await?;
 
         let bucket_ids = buckets.iter().map(|item| item.id).collect::<Vec<i32>>();
-        let inouts = sqlx::query_as!(
-            ItemsInOutModel,
-            "select * from item_inout where bucket_id = any($1)",
+        let bucket_total_count_total_price = sqlx::query!(
+            r#"
+            select
+                bucket_id,
+                sum(count) as total_count,
+                sum(current_total) as total_sum
+            from item_inout
+            where bucket_id = any($1) 
+            group by bucket_id;
+            "#,
             &bucket_ids
         )
         .fetch_all(self.db.get_pool())
-        .await?;
+        .await?
+        .into_iter()
+        .map(|item| {
+            (
+                item.bucket_id,
+                (
+                    item.total_count.unwrap_or(0) as i32,
+                    item.total_sum.unwrap_or(0) as i32,
+                ),
+            )
+        })
+        .collect::<HashMap<i32, (i32, i32)>>();
+
+        let bucket_images: HashMap<i32, Vec<String>> = HashMap::new();
 
         let id_to_name = sqlx::query!("select id, name from accounts")
             .fetch_all(self.db.get_pool())
@@ -550,11 +566,21 @@ impl ItemServiceTrait for ItemService {
             .collect::<HashMap<_, _>>();
 
         let empty_str = "".to_string();
+        let empty_tuple = (0, 0);
         let bucket_dto = buckets
             .into_iter()
             .map(|item| {
                 let account_name = id_to_name.get(&item.account_id).unwrap_or(&empty_str);
-                ItemInOutBucketDto::from(item, account_name, vec![])
+                let count_and_sum = bucket_total_count_total_price
+                    .get(&item.id)
+                    .unwrap_or(&empty_tuple);
+                ItemInOutBucketDto::from(
+                    item,
+                    account_name,
+                    vec![],
+                    count_and_sum.0,
+                    count_and_sum.1,
+                )
             })
             .collect::<Vec<_>>();
 
@@ -563,7 +589,7 @@ impl ItemServiceTrait for ItemService {
 
     async fn inout_bucket_count(&self, params: &InoutBucketParams) -> ERPResult<i32> {
         let mut sql: QueryBuilder<Postgres> =
-            QueryBuilder::new("select count(1) from item_inout_bucket; ");
+            QueryBuilder::new("select count(1) from item_inout_bucket ");
         if !params.is_empty() {
             sql.push(" where ");
 
@@ -582,19 +608,20 @@ impl ItemServiceTrait for ItemService {
                 and = " and ";
             }
 
-            if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
-                sql.push(&format!(" {} create_time >= ", and))
-                    .push_bind(&params.create_time_st)
-                    .push(&format!(" {} create_time <= ", and))
-                    .push_bind(&params.create_time_ed);
-            }
+            // todo
+            // if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+            //     sql.push(&format!(" {} create_time >= ", and))
+            //         .push_bind(&params.create_time_st)
+            //         .push(&format!(" {} create_time <= ", and))
+            //         .push_bind(&params.create_time_ed);
+            // }
         }
 
         let count = sql
-            .build_query_as::<(i32,)>()
+            .build_query_as::<(i64,)>()
             .fetch_one(self.db.get_pool())
             .await?
-            .0;
+            .0 as i32;
 
         Ok(count)
     }

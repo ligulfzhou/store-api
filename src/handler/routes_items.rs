@@ -93,7 +93,7 @@ async fn api_item_inout(
 
 async fn api_inout_group_list(
     State(state): State<ItemState>,
-    Extension(account): Extension<AccountDto>,
+    // Extension(account): Extension<AccountDto>,
     WithRejection(Query(params), _): WithRejection<Query<InoutBucketParams>, ERPError>,
 ) -> ERPResult<APIListResponse<ItemInOutBucketDto>> {
     tracing::info!("api_item_list : /api/item/inout/group/list");

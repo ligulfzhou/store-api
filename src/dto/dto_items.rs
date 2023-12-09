@@ -65,6 +65,9 @@ pub struct ItemInOutBucketDto {
     pub via: String,                // 规格
     pub create_time: NaiveDateTime, // 创建时间
 
+    pub total_count: i32,
+    pub total_sum: i32,
+
     pub items: Vec<ItemInOutDto>, // todo: 可能没必要再搞一个没哟accout 名字的struct 出来
 }
 
@@ -73,6 +76,8 @@ impl ItemInOutBucketDto {
         item_inout_bucket: ItemInOutBucketModal,
         account_name: &str,
         items: Vec<ItemInOutDto>,
+        total_count: i32,
+        total_sum: i32,
     ) -> Self {
         Self {
             id: item_inout_bucket.id,
@@ -81,6 +86,8 @@ impl ItemInOutBucketDto {
             in_true_out_false: item_inout_bucket.in_true_out_false,
             via: item_inout_bucket.via,
             create_time: item_inout_bucket.create_time,
+            total_count,
+            total_sum,
             items,
         }
     }
@@ -216,27 +223,28 @@ pub struct ItemInOutQueryParams {
 
 #[derive(Deserialize, Debug)]
 pub struct InoutBucketParams {
-    pub item_id: i32,
+    // pub item_id: i32,
     pub in_out: Option<bool>,
-    pub create_time_st: String,
-    pub create_time_ed: String,
 
+    // todo: 这两个是需要的
+    // pub create_time_st: String,
+    // pub create_time_ed: String,
     pub page: Option<i32>,
     pub page_size: Option<i32>,
 }
 
 impl InoutBucketParams {
     pub fn is_empty(&self) -> bool {
-        if self.item_id != 0 {
-            return false;
-        }
+        // if self.item_id != 0 {
+        //     return false;
+        // }
 
         if self.in_out.is_some() {
             return false;
         }
-        if self.create_time_ed.is_empty() && self.create_time_st.is_empty() {
-            return false;
-        }
+        // if self.create_time_ed.is_empty() && self.create_time_st.is_empty() {
+        //     return false;
+        // }
         true
     }
 }

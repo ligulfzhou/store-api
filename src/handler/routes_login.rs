@@ -87,7 +87,7 @@ mod tests {
             account: "test".to_string(),
             password: "test".to_string(),
         };
-        let client = httpc_test::new_client("http://localhost:9100")?;
+        let client = httpc_test::new_client("http://localhost:9101")?;
         client
             .do_post("/api/login", serde_json::json!(param))
             .await?

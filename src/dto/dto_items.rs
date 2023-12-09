@@ -1,6 +1,6 @@
 use crate::dto::dto_embryo::EmbryoDto;
 use crate::model::embryo::EmbryoModel;
-use crate::model::items::ItemsModel;
+use crate::model::items::{ItemInOutBucketModal, ItemsModel};
 use chrono::NaiveDateTime;
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
@@ -68,6 +68,24 @@ pub struct ItemInOutBucketDto {
     pub items: Vec<ItemInOutDto>, // todo: 可能没必要再搞一个没哟accout 名字的struct 出来
 }
 
+impl ItemInOutBucketDto {
+    pub fn from(
+        item_inout_bucket: ItemInOutBucketModal,
+        account_name: &str,
+        items: Vec<ItemInOutDto>,
+    ) -> Self {
+        Self {
+            id: item_inout_bucket.id,
+            account_id: item_inout_bucket.account_id,
+            account: account_name.to_string(),
+            in_true_out_false: item_inout_bucket.in_true_out_false,
+            via: item_inout_bucket.via,
+            create_time: item_inout_bucket.create_time,
+            items,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct SingleItemInOutDto {
     pub id: i32,
@@ -98,22 +116,6 @@ pub struct ItemInOutDto {
     pub order_id: i32,
     pub create_time: NaiveDateTime, // 创建时间
 }
-
-// impl ItemInOutDto {
-//     pub fn from(item_in_out: ItemsInOutModel, account: &str, item: Option<ItemsModel>) -> Self {
-//         Self {
-//             id: item_in_out.id,
-//             account_id: item_in_out.item_id, // todo
-//             account: account.to_string(),
-//             item_id: item_in_out.item_id,
-//             count: item_in_out.count,
-//             in_true_out_false: item_in_out.in_true_out_false,
-//             via: item_in_out.via,
-//             create_time: item_in_out.create_time,
-//             item,
-//         }
-//     }
-// }
 
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
@@ -257,4 +259,15 @@ pub struct InoutQueryParams {
 #[derive(Debug, Deserialize)]
 pub struct ItemSearchParams {
     pub barcode: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ItemStockOutItem {
+    pub item_id: i32,
+    pub count: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ItemStockOutMultiParams {
+    pub items: Vec<ItemStockOutItem>,
 }

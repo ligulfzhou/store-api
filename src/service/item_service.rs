@@ -2,16 +2,17 @@ use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{
     DeleteParams, EditParams, InoutBucketParams, InoutParams, ItemInOutBucketDto, ItemInOutDto,
-    ItemSearchParams, ItemsDto, QueryParams,
+    ItemSearchParams, ItemStockOutMultiParams, ItemsDto, QueryParams,
 };
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
 use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
-use sqlx::{query_as, Postgres, QueryBuilder};
+use sqlx::{Postgres, QueryBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tower_http::classify::ServerErrorsFailureClass;
 
 #[derive(Clone)]
 pub struct ItemService {
@@ -48,10 +49,20 @@ pub trait ItemServiceTrait {
         &self,
         params: &InoutBucketParams,
     ) -> ERPResult<Vec<ItemInOutBucketDto>>;
+    async fn inout_bucket_count(&self, params: &InoutBucketParams) -> ERPResult<i32>;
     async fn add_inout_bucket(
         &self,
         bucket: ItemInOutBucketModal,
     ) -> ERPResult<ItemInOutBucketModal>;
+    async fn stock_out_multiple(
+        &self,
+        params: &ItemStockOutMultiParams,
+        account_id: i32,
+    ) -> ERPResult<()>;
+    async fn add_multiple_items_inouts(
+        &self,
+        items: &[ItemsInOutModel],
+    ) -> ERPResult<Vec<ItemsInOutModel>>;
 }
 
 #[async_trait]
@@ -453,8 +464,8 @@ impl ItemServiceTrait for ItemService {
     async fn search_item(&self, params: &ItemSearchParams) -> ERPResult<Vec<ItemsModel>> {
         Ok(sqlx::query_as!(
             ItemsModel,
-            "select * from items where barcode like '$1%' limit 50;",
-            // &params.barcode
+            "select * from items where barcode like $1 limit 50;",
+            format!("%{}%", params.barcode)
         )
         .fetch_all(self.db.get_pool())
         .await?)
@@ -464,7 +475,8 @@ impl ItemServiceTrait for ItemService {
         &self,
         params: &InoutBucketParams,
     ) -> ERPResult<Vec<ItemInOutBucketDto>> {
-        // querybuilder
+        // todo, 还未算总和
+        // query_builder
         let mut sql: QueryBuilder<Postgres> =
             QueryBuilder::new("select * from item_inout_bucket; ");
         if !params.is_empty() {
@@ -502,12 +514,12 @@ impl ItemServiceTrait for ItemService {
             page_size, offset
         ));
 
-        let items = sql
+        let buckets = sql
             .build_query_as::<ItemInOutBucketModal>()
             .fetch_all(self.db.get_pool())
             .await?;
 
-        let bucket_ids = items.iter().map(|item| item.id).collect::<Vec<i32>>();
+        let bucket_ids = buckets.iter().map(|item| item.id).collect::<Vec<i32>>();
         let inouts = sqlx::query_as!(
             ItemsInOutModel,
             "select * from item_inout where bucket_id = any($1)",
@@ -516,18 +528,61 @@ impl ItemServiceTrait for ItemService {
         .fetch_all(self.db.get_pool())
         .await?;
 
-        let account_ids = items.iter().map(|item| item.account_id).collect::<Vec<_>>();
-        let account_id_to_name = sqlx::query!(
-            "select id, name from accounts where id = any($1)",
-            &account_ids
-        )
-        .fetch_all(self.db.get_pool())
-        .await?
-        .into_iter()
-        .map(|item| (item.id, item.name))
-        .collect::<HashMap<_, _>>();
+        let id_to_name = sqlx::query!("select id, name from accounts")
+            .fetch_all(self.db.get_pool())
+            .await?
+            .into_iter()
+            .map(|item| (item.id, item.name))
+            .collect::<HashMap<_, _>>();
 
-        todo!()
+        let empty_str = "".to_string();
+        let bucket_dto = buckets
+            .into_iter()
+            .map(|item| {
+                let account_name = id_to_name.get(&item.account_id).unwrap_or(&empty_str);
+                ItemInOutBucketDto::from(item, account_name, vec![])
+            })
+            .collect::<Vec<_>>();
+
+        Ok(bucket_dto)
+    }
+
+    async fn inout_bucket_count(&self, params: &InoutBucketParams) -> ERPResult<i32> {
+        let mut sql: QueryBuilder<Postgres> =
+            QueryBuilder::new("select count(1) from item_inout_bucket; ");
+        if !params.is_empty() {
+            sql.push(" where ");
+
+            let mut and = "";
+
+            // todo: 如果有item_id, sql语句完全不一样
+            // if !params.item_id.is_empty() {
+            //     sql.push(&format!("{}  = ", and))
+            //         .push_bind(&params.name);
+            //     and = " and ";
+            // }
+
+            if params.in_out.is_some() {
+                sql.push(&format!("{} in_true_out_false = ", and))
+                    .push_bind(params.in_out.unwrap_or(true));
+                and = " and ";
+            }
+
+            if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+                sql.push(&format!(" {} create_time >= ", and))
+                    .push_bind(&params.create_time_st)
+                    .push(&format!(" {} create_time <= ", and))
+                    .push_bind(&params.create_time_ed);
+            }
+        }
+
+        let count = sql
+            .build_query_as::<(i32,)>()
+            .fetch_one(self.db.get_pool())
+            .await?
+            .0;
+
+        Ok(count)
     }
 
     async fn add_inout_bucket(
@@ -550,5 +605,93 @@ impl ItemServiceTrait for ItemService {
         .await?;
 
         Ok(bucket)
+    }
+
+    async fn stock_out_multiple(
+        &self,
+        params: &ItemStockOutMultiParams,
+        account_id: i32,
+    ) -> ERPResult<()> {
+        let bucket_id = sqlx::query!(
+            r#"
+            insert into item_inout_bucket (account_id, in_true_out_false, via, order_id) 
+            values ($1, $2, $3, $4) 
+            returning id
+            "#,
+            account_id,
+            false,
+            "form",
+            0
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .id;
+
+        let item_ids = params
+            .items
+            .iter()
+            .map(|item| item.item_id)
+            .collect::<Vec<i32>>();
+
+        let id_to_price = sqlx::query_as!(
+            ItemsModel,
+            "select * from items where id =any($1)",
+            &item_ids
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| (item.id, item.price))
+        .collect::<HashMap<_, _>>();
+
+        let item_inouts = params
+            .items
+            .iter()
+            .map(|item| {
+                let current_price = id_to_price.get(&item.item_id).unwrap_or(&0);
+                let current_total = -current_price * item.count;
+                ItemsInOutModel {
+                    id: 0,
+                    bucket_id,
+                    item_id: item.item_id,
+                    count: -item.count,
+                    current_price: *current_price,
+                    current_total,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        if !item_inouts.is_empty() {
+            self.add_multiple_items_inouts(&item_inouts).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn add_multiple_items_inouts(
+        &self,
+        items: &[ItemsInOutModel],
+    ) -> ERPResult<Vec<ItemsInOutModel>> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "insert into item_inout (bucket_id, item_id, count, current_price, current_total) ",
+        );
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(item.bucket_id)
+                .push_bind(item.item_id)
+                .push_bind(item.count)
+                .push_bind(item.current_price)
+                .push_bind(item.current_total);
+        });
+
+        query_builder.push(" returning *;");
+
+        let items = query_builder
+            .build_query_as::<ItemsInOutModel>()
+            .fetch_all(self.db.get_pool())
+            .await?;
+        // query_builder.build().execute(self.db.get_pool()).await?;
+
+        Ok(items)
     }
 }

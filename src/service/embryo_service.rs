@@ -183,14 +183,14 @@ impl EmbryoServiceTrait for EmbryoService {
 
     async fn insert_multiple_items_inouts(&self, rows: &[EmbryoInOutModel]) -> ERPResult<()> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "insert into embryo_inout (bucket_id, embryo_id, count, current_price, current_total) ",
+            "insert into embryo_inout (bucket_id, embryo_id, count, current_cost, current_total) ",
         );
 
         query_builder.push_values(rows, |mut b, item| {
             b.push_bind(item.bucket_id)
                 .push_bind(item.embryo_id)
                 .push_bind(item.count)
-                .push_bind(item.current_price)
+                .push_bind(item.current_cost)
                 .push_bind(item.current_total);
         });
 
@@ -231,7 +231,7 @@ impl EmbryoServiceTrait for EmbryoService {
 
         sqlx::query!(
             r#"
-            insert into embryo_inout (bucket_id, embryo_id, count, current_price, current_total) 
+            insert into embryo_inout (bucket_id, embryo_id, count, current_cost, current_total) 
             values ($1, $2, $3, $4, $5);
             "#,
             bucket_id,

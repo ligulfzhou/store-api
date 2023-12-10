@@ -193,7 +193,7 @@ async fn process_embryo_excel(
                 bucket_id,
                 embryo_id: *id,
                 count,
-                current_price: *cost,
+                current_cost: *cost,
                 current_total,
             }
         })
@@ -240,9 +240,9 @@ async fn process_item_excel(
         .iter()
         .map(|item| (item.barcode.clone(), item.count))
         .collect::<HashMap<_, _>>();
-    let barcode_to_price = items
+    let barcode_to_cost = items
         .iter()
-        .map(|item| (item.barcode.clone(), item.price))
+        .map(|item| (item.barcode.clone(), item.cost))
         .collect::<HashMap<_, _>>();
 
     // 用barcode去重
@@ -380,14 +380,14 @@ async fn process_item_excel(
         .into_iter()
         .map(|(barcode, count)| {
             let item_id = barcode_to_id.get(&barcode).unwrap_or(&0);
-            let current_price = barcode_to_price.get(&barcode).unwrap_or(&0);
-            let current_total = *current_price * count;
+            let current_cost = barcode_to_cost.get(&barcode).unwrap_or(&0);
+            let current_total = *current_cost * count;
             ItemsInOutModel {
                 id: 0,
                 bucket_id,
                 item_id: *item_id,
                 count,
-                current_price: *current_price,
+                current_cost: *current_cost,
                 current_total,
             }
         })

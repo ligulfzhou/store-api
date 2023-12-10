@@ -46,11 +46,21 @@ pub fn parse_items(
 
     let mut items = vec![];
 
+    let mut pre: Option<ItemExcelDto> = None;
+
     // 从第2行开始
     for i in 7..rows + 1 {
         print!("row: {}", i);
 
         let mut cur = ItemExcelDto::default();
+        if let Some(previous) = pre {
+            cur.images = previous.images;
+            cur.number = previous.number;
+            cur.size = previous.size;
+            cur.name = previous.name;
+        }
+
+        // let mut cur = ItemExcelDto::default();
 
         let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
@@ -63,6 +73,10 @@ pub fn parse_items(
             let cell = items_sheet.get_cell((j, i));
             if cell.is_none() {
                 if NONE_NULLABLE_JS.contains(&(j as i32)) {
+                    if j == 2 && !cur.number.is_empty() || j == 5 && !cur.name.is_empty() {
+                        continue;
+                    }
+
                     return Err(ERPError::ExcelError(format!(
                         "第{}行的 {} 为空/0",
                         i,
@@ -76,6 +90,10 @@ pub fn parse_items(
             let cell_value = cell.unwrap().get_raw_value().to_string();
             if cell_value.is_empty() {
                 if NONE_NULLABLE_JS.contains(&(j as i32)) {
+                    if j == 2 && !cur.number.is_empty() || j == 5 && !cur.name.is_empty() {
+                        continue;
+                    }
+
                     return Err(ERPError::ExcelError(format!(
                         "第{}行的 {} 为空",
                         i,
@@ -93,17 +111,13 @@ pub fn parse_items(
                 7 => cur.cates2 = cell_value.trim().to_string(),
                 8 => cur.color = cell_value.trim().to_string().to_ascii_uppercase(),
                 9 => cur.barcode = cell_value.trim().to_string(),
-                10 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
+                10 => cur.count = (cell_value.parse::<f32>().unwrap_or(0.0) * 10.0) as i32,
                 11 => cur.unit = cell_value.trim().to_string(),
                 12 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 13 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 15 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
-        }
-
-        if images.is_empty() {
-            return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i)));
         }
 
         if cur.barcode.is_empty() {
@@ -118,33 +132,29 @@ pub fn parse_items(
             cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price);
         }
 
-        // let mut image_urls = vec![];
-        // if !images.is_empty() {
-        //     for (index, real_goods_image) in images.into_iter().enumerate() {
-        //         let sku_image_name = format!("{}-{}.png", cur.barcode, index);
-        //         let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
-        //         real_goods_image.download_image(&goods_image_path);
-        //         image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
-        //     }
-        // }
-        // cur.images = image_urls;
+        if cur.images.is_empty() && images.is_empty() {
+            return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i)));
+        }
+        if cur.images.is_empty() {
+            cur.images = match images.is_empty() {
+                true => vec![],
+                _ => {
+                    let mut tmp = vec![];
+                    for (index, real_goods_image) in images.into_iter().enumerate() {
+                        let sku_image_name = format!("{}-{}.png", cur.barcode, index);
+                        let goods_image_path =
+                            format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+                        real_goods_image.download_image(&goods_image_path);
+                        tmp.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+                    }
 
-        cur.images = match images.is_empty() {
-            true => vec![],
-            _ => {
-                let mut tmp = vec![];
-                for (index, real_goods_image) in images.into_iter().enumerate() {
-                    let sku_image_name = format!("{}-{}.png", cur.barcode, index);
-                    let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
-                    real_goods_image.download_image(&goods_image_path);
-                    tmp.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+                    tmp
                 }
-
-                tmp
-            }
-        };
+            };
+        }
 
         tracing::info!("rows#{:?}: {:?}", i, cur);
+        pre = Some(cur.clone());
         items.push(cur);
     }
 

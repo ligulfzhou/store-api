@@ -1,4 +1,4 @@
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct ItemExcelDto {
     pub images: Vec<String>, // 图片
     pub name: String,        // 名称

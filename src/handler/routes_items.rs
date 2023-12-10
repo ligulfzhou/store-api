@@ -1,8 +1,9 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_items::{
-    DeleteParams, EditParams, InoutBucketParams, InoutParams, InoutQueryParams, ItemInOutBucketDto,
-    ItemInOutDto, ItemSearchParams, ItemStockOutMultiParams, ItemsDto, QueryParams,
+    DeleteParams, EditParams, InoutBucketParams, InoutListOfBucketParams, InoutParams,
+    InoutQueryParams, ItemInOutBucketDto, ItemInOutDto, ItemSearchParams, ItemStockOutMultiParams,
+    ItemsDto, QueryParams,
 };
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::item_service::ItemServiceTrait;
@@ -23,6 +24,10 @@ pub fn routes() -> Router<ItemState> {
         .route("/api/item/inout", post(api_item_inout))
         .route("/api/item/inout/list", get(api_inout_list))
         .route("/api/item/inout/group/list", get(api_inout_group_list)) // 出入库列表
+        .route(
+            "/api/item/inout/list/of/bucket",
+            get(api_inout_list_of_bucket),
+        ) // 出入库列表
         .route("/api/item/search", get(api_item_search))
 }
 
@@ -125,6 +130,22 @@ async fn api_inout_list(
         .item_service
         .inout_list_of_item_count(params.item_id)
         .await?;
+    Ok(APIListResponse::new(items, count))
+}
+
+async fn api_inout_list_of_bucket(
+    State(state): State<ItemState>,
+    WithRejection(Query(params), _): WithRejection<Query<InoutListOfBucketParams>, ERPError>,
+) -> ERPResult<APIListResponse<ItemInOutDto>> {
+    tracing::info!("api_item_list : /api/item/inout/list/of/bucket");
+
+    if params.bucket_id == 0 {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+
+    let items = state.item_service.inout_list_of_bucket(&params).await?;
+    let count = state.item_service.inout_count_of_bucket(&params).await?;
+
     Ok(APIListResponse::new(items, count))
 }
 

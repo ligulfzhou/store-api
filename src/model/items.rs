@@ -36,6 +36,6 @@ pub struct ItemsInOutModel {
     pub bucket_id: i32,
     pub item_id: i32,
     pub count: i32,
-    pub current_price: i32,
+    pub current_cost: i32,
     pub current_total: i32,
 }

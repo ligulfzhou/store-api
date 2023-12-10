@@ -112,10 +112,13 @@ pub struct ItemInOutDto {
     pub bucket_id: i32,
     pub item_id: i32,
     pub count: i32,
-    pub current_price: i32,
+    pub current_cost: i32,
     pub current_total: i32,
 
     pub item_name: String,
+    pub number: String,
+    pub barcode: String,
+    pub unit: String,
     pub account_id: i32,         // 经手账号id
     pub account: String,         // 经手账号 名
     pub in_true_out_false: bool, // 增加还是减少
@@ -247,6 +250,13 @@ impl InoutBucketParams {
         // }
         true
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct InoutListOfBucketParams {
+    pub bucket_id: i32,
+    pub page: Option<i32>,
+    pub page_size: Option<i32>,
 }
 
 #[derive(Deserialize, Debug)]

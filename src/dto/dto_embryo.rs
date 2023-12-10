@@ -39,7 +39,7 @@ pub struct EmbryoInOutDto {
     pub bucket_id: i32,
     pub embryo_id: i32,
     pub count: i32,
-    pub current_price: i32,
+    pub current_cost: i32,
     pub current_total: i32,
 
     pub embryo_name: String,

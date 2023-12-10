@@ -2,8 +2,9 @@ use crate::common::items::calculate_barcode;
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_items::{
-    DeleteParams, EditParams, InoutBucketParams, InoutParams, ItemInOutBucketDto, ItemInOutDto,
-    ItemSearchParams, ItemStockOutMultiParams, ItemsDto, QueryParams,
+    DeleteParams, EditParams, InoutBucketParams, InoutListOfBucketParams, InoutParams,
+    ItemInOutBucketDto, ItemInOutDto, ItemSearchParams, ItemStockOutMultiParams, ItemsDto,
+    QueryParams,
 };
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
@@ -63,6 +64,11 @@ pub trait ItemServiceTrait {
         &self,
         items: &[ItemsInOutModel],
     ) -> ERPResult<Vec<ItemsInOutModel>>;
+    async fn inout_list_of_bucket(
+        &self,
+        params: &InoutListOfBucketParams,
+    ) -> ERPResult<Vec<ItemInOutDto>>;
+    async fn inout_count_of_bucket(&self, params: &InoutListOfBucketParams) -> ERPResult<i32>;
 }
 
 #[async_trait]
@@ -302,14 +308,14 @@ impl ItemServiceTrait for ItemService {
         bucket_id: i32,
     ) -> ERPResult<()> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "insert into item_inout (bucket_id, item_id, count, current_price, current_total) ",
+            "insert into item_inout (bucket_id, item_id, count, current_cost, current_total) ",
         );
 
         query_builder.push_values(rows, |mut b, item| {
             b.push_bind(bucket_id)
                 .push_bind(item.item_id)
                 .push_bind(item.count)
-                .push_bind(item.current_price)
+                .push_bind(item.current_cost)
                 .push_bind(item.current_total);
         });
 
@@ -409,7 +415,7 @@ impl ItemServiceTrait for ItemService {
 
         sqlx::query!(
             r#"
-            insert into item_inout (bucket_id, item_id, count, current_price, current_total) 
+            insert into item_inout (bucket_id, item_id, count, current_cost, current_total) 
             values ($1, $2, $3, $4, $5);
             "#,
             bucket_id,
@@ -438,7 +444,7 @@ impl ItemServiceTrait for ItemService {
             ItemInOutDto,
             r#"
             select 
-                ii.*, i.name as item_name,
+                ii.*, i.name as item_name, i.number, i.barcode, i.unit,
                 iib.account_id, iib.in_true_out_false, iib.via, iib.order_id, iib.create_time,
                 a.name as account
             from items i, item_inout ii, item_inout_bucket iib, accounts a 
@@ -674,29 +680,25 @@ impl ItemServiceTrait for ItemService {
             .map(|item| item.item_id)
             .collect::<Vec<i32>>();
 
-        let id_to_price = sqlx::query_as!(
-            ItemsModel,
-            "select * from items where id =any($1)",
-            &item_ids
-        )
-        .fetch_all(self.db.get_pool())
-        .await?
-        .into_iter()
-        .map(|item| (item.id, item.price))
-        .collect::<HashMap<_, _>>();
+        let id_to_cost = sqlx::query!("select id, cost from items where id =any($1)", &item_ids)
+            .fetch_all(self.db.get_pool())
+            .await?
+            .into_iter()
+            .map(|item| (item.id, item.cost))
+            .collect::<HashMap<_, _>>();
 
         let item_inouts = params
             .items
             .iter()
             .map(|item| {
-                let current_price = id_to_price.get(&item.item_id).unwrap_or(&0);
-                let current_total = -current_price * item.count;
+                let current_cost = id_to_cost.get(&item.item_id).unwrap_or(&0);
+                let current_total = -current_cost * item.count;
                 ItemsInOutModel {
                     id: 0,
                     bucket_id,
                     item_id: item.item_id,
                     count: -item.count,
-                    current_price: *current_price,
+                    current_cost: *current_cost,
                     current_total,
                 }
             })
@@ -714,14 +716,14 @@ impl ItemServiceTrait for ItemService {
         items: &[ItemsInOutModel],
     ) -> ERPResult<Vec<ItemsInOutModel>> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "insert into item_inout (bucket_id, item_id, count, current_price, current_total) ",
+            "insert into item_inout (bucket_id, item_id, count, current_cost, current_total) ",
         );
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(item.bucket_id)
                 .push_bind(item.item_id)
                 .push_bind(item.count)
-                .push_bind(item.current_price)
+                .push_bind(item.current_cost)
                 .push_bind(item.current_total);
         });
 
@@ -734,5 +736,49 @@ impl ItemServiceTrait for ItemService {
         // query_builder.build().execute(self.db.get_pool()).await?;
 
         Ok(items)
+    }
+
+    async fn inout_list_of_bucket(
+        &self,
+        params: &InoutListOfBucketParams,
+    ) -> ERPResult<Vec<ItemInOutDto>> {
+        let page = params.page.unwrap_or(1);
+        let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+
+        let inouts = sqlx::query_as!(
+            ItemInOutDto,
+            r#"
+            select 
+                ii.*, i.name as item_name, i.number, i.barcode, i.unit,
+                iib.account_id, iib.in_true_out_false, iib.via, iib.order_id, iib.create_time,
+                a.name as account
+            from items i, item_inout ii, item_inout_bucket iib, accounts a 
+            where ii.bucket_id=iib.id and iib.account_id = a.id and i.id = ii.item_id
+                and iib.id = $1 
+            order by ii.id desc offset $2 limit $3
+            "#,
+            params.bucket_id,
+            offset as i64,
+            page_size as i64
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        Ok(inouts)
+    }
+
+    async fn inout_count_of_bucket(&self, params: &InoutListOfBucketParams) -> ERPResult<i32> {
+        Ok(sqlx::query!(
+            r#"
+            select count(1) from item_inout ii, item_inout_bucket iib
+            where iib.id=$1;
+            "#,
+            params.bucket_id
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .count
+        .unwrap_or(0) as i32)
     }
 }

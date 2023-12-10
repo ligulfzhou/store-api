@@ -71,11 +71,10 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
 
             let cell_value = cell.unwrap().get_raw_value().to_string();
             if cell_value.is_empty() {
-                if j == 3 && !cur.images.is_empty() {
-                    continue;
-                }
-
                 if NONE_NULLABLE_JS.contains(&(j as i32)) {
+                    if j == 3 && !cur.images.is_empty() {
+                        continue;
+                    }
                     return Err(ERPError::ExcelError(format!(
                         "第{}行的 {} 为空",
                         i,
@@ -101,20 +100,27 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
             break;
         }
 
-        if images.is_empty() {
+        if cur.images.is_empty() && images.is_empty() {
             return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i,)));
         }
 
-        let mut image_urls = vec![];
-        if !images.is_empty() {
-            for (index, real_goods_image) in images.into_iter().enumerate() {
-                let sku_image_name = format!("{}-{}.png", cur.number, index);
-                let goods_image_path = format!("{}/embryo/{}", STORAGE_FILE_PATH, sku_image_name);
-                real_goods_image.download_image(&goods_image_path);
-                image_urls.push(format!("{}/embryo/{}", STORAGE_URL_PREFIX, sku_image_name));
-            }
+        if cur.images.is_empty() {
+            cur.images = match images.is_empty() {
+                true => vec![],
+                false => {
+                    let mut image_urls = vec![];
+                    for (index, real_goods_image) in images.into_iter().enumerate() {
+                        let sku_image_name = format!("{}-{}.png", cur.number, index);
+                        let goods_image_path =
+                            format!("{}/embryo/{}", STORAGE_FILE_PATH, sku_image_name);
+                        real_goods_image.download_image(&goods_image_path);
+                        image_urls
+                            .push(format!("{}/embryo/{}", STORAGE_URL_PREFIX, sku_image_name));
+                    }
+                    image_urls
+                }
+            };
         }
-        cur.images = image_urls;
 
         tracing::info!("rows#{:?}: {:?}", i, cur);
         pre = Some(cur.clone());

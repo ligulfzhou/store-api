@@ -24,6 +24,7 @@ lazy_static! {
 }
 
 pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
+    tracing::info!("fila_path: {file_path}");
     let path = std::path::Path::new(file_path);
     let sheets = reader::xlsx::read(path).unwrap();
     let items_sheet = sheets
@@ -33,12 +34,16 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
     let (cols, rows) = items_sheet.get_highest_column_and_row();
 
     let mut items = vec![];
+    let mut pre: Option<EmbryoExcelDto> = None;
 
     // 从第2行开始
     for i in 2..rows + 1 {
         print!("row: {}", i);
 
         let mut cur = EmbryoExcelDto::default();
+        if let Some(previous) = pre {
+            cur.images = previous.images;
+        }
 
         let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
@@ -51,6 +56,9 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
             let cell = items_sheet.get_cell((j, i));
             if cell.is_none() {
                 if NONE_NULLABLE_JS.contains(&(j as i32)) {
+                    if j == 3 && !cur.images.is_empty() {
+                        continue;
+                    }
                     return Err(ERPError::ExcelError(format!(
                         "第{}行的 {} 为空",
                         i,
@@ -63,6 +71,10 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
 
             let cell_value = cell.unwrap().get_raw_value().to_string();
             if cell_value.is_empty() {
+                if j == 3 && !cur.images.is_empty() {
+                    continue;
+                }
+
                 if NONE_NULLABLE_JS.contains(&(j as i32)) {
                     return Err(ERPError::ExcelError(format!(
                         "第{}行的 {} 为空",
@@ -105,6 +117,7 @@ pub fn parse_embryos(file_path: &str) -> ERPResult<Vec<EmbryoExcelDto>> {
         cur.images = image_urls;
 
         tracing::info!("rows#{:?}: {:?}", i, cur);
+        pre = Some(cur.clone());
         items.push(cur);
     }
 

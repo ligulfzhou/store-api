@@ -17,7 +17,7 @@ pub struct ItemExcelDto {
     pub count: i32,          // 数量
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct EmbryoExcelDto {
     pub images: Vec<String>,
     // 图片

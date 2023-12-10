@@ -36,6 +36,7 @@ pub fn parse_items(
     file_path: &str,
     color_to_value: HashMap<String, i32>,
 ) -> ERPResult<Vec<ItemExcelDto>> {
+    tracing::info!("file_path: {file_path}");
     let path = std::path::Path::new(file_path);
     let sheets = reader::xlsx::read(path).unwrap();
     let items_sheet = sheets

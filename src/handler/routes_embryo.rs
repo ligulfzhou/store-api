@@ -1,7 +1,8 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_embryo::{
-    EditParams, EmbryoDto, EmbryoInOutDto, InoutListParams, InoutParams, QueryParams,
+    EditParams, EmbryoDto, EmbryoInOutBucketDto, EmbryoInOutDto, InoutBucketParams,
+    InoutListOfBucketParams, InoutListParams, InoutParams, QueryParams,
 };
 use crate::dto::GenericDeleteParams;
 use crate::repository::embryo_repository::EmbryoRepositoryTrait;
@@ -21,6 +22,11 @@ pub fn routes() -> Router<EmbryoState> {
         .route("/api/embryo/delete", post(api_item_delete))
         .route("/api/embryo/inout", post(api_item_inout))
         .route("/api/embryo/inout/list", get(api_inout_list))
+        .route("/api/embryo/inout/group/list", get(api_inout_group_list)) // 出入库列表
+        .route(
+            "/api/embryo/inout/list/of/bucket",
+            get(api_inout_list_of_bucket),
+        ) // 出入库列表
 }
 
 async fn api_item_list(
@@ -91,5 +97,34 @@ async fn api_inout_list(
         .embryo_repo
         .inout_list_of_embryo_count(params.embryo_id)
         .await?;
+    Ok(APIListResponse::new(items, count))
+}
+
+async fn api_inout_group_list(
+    State(state): State<EmbryoState>,
+    // Extension(account): Extension<AccountDto>,
+    WithRejection(Query(params), _): WithRejection<Query<InoutBucketParams>, ERPError>,
+) -> ERPResult<APIListResponse<EmbryoInOutBucketDto>> {
+    tracing::info!("api_item_list : /api/embryo/inout/group/list");
+
+    let buckets = state.embryo_service.inout_bucket_list(&params).await?;
+    let count = state.embryo_service.inout_bucket_count(&params).await?;
+
+    Ok(APIListResponse::new(buckets, count))
+}
+
+async fn api_inout_list_of_bucket(
+    State(state): State<EmbryoState>,
+    WithRejection(Query(params), _): WithRejection<Query<InoutListOfBucketParams>, ERPError>,
+) -> ERPResult<APIListResponse<EmbryoInOutDto>> {
+    tracing::info!("api_item_list : /api/embryo/inout/list/of/bucket");
+
+    if params.bucket_id == 0 {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+
+    let items = state.embryo_service.inout_list_of_bucket(&params).await?;
+    let count = state.embryo_service.inout_count_of_bucket(&params).await?;
+
     Ok(APIListResponse::new(items, count))
 }

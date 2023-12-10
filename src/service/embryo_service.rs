@@ -1,6 +1,9 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_embryo::{EditParams, EmbryoDto, InoutParams, QueryParams};
+use crate::dto::dto_embryo::{
+    EditParams, EmbryoDto, EmbryoInOutBucketDto, EmbryoInOutDto, InoutBucketParams,
+    InoutListOfBucketParams, InoutParams, QueryParams,
+};
 use crate::dto::dto_excel::EmbryoExcelDto;
 use crate::dto::GenericDeleteParams;
 use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoInOutModel, EmbryoModel};
@@ -33,6 +36,17 @@ pub trait EmbryoServiceTrait {
         &self,
         bucket: EmbryoInOutBucketModal,
     ) -> ERPResult<EmbryoInOutBucketModal>;
+
+    async fn inout_bucket_list(
+        &self,
+        params: &InoutBucketParams,
+    ) -> ERPResult<Vec<EmbryoInOutBucketDto>>;
+    async fn inout_bucket_count(&self, params: &InoutBucketParams) -> ERPResult<i32>;
+    async fn inout_list_of_bucket(
+        &self,
+        params: &InoutListOfBucketParams,
+    ) -> ERPResult<Vec<EmbryoInOutDto>>;
+    async fn inout_count_of_bucket(&self, params: &InoutListOfBucketParams) -> ERPResult<i32>;
 }
 
 #[async_trait]
@@ -295,5 +309,192 @@ impl EmbryoServiceTrait for EmbryoService {
         .await?;
 
         Ok(bucket)
+    }
+
+    async fn inout_bucket_list(
+        &self,
+        params: &InoutBucketParams,
+    ) -> ERPResult<Vec<EmbryoInOutBucketDto>> {
+        // todo, 还未算总和
+        let mut sql: QueryBuilder<Postgres> =
+            QueryBuilder::new("select * from embryo_inout_bucket ");
+        if !params.is_empty() {
+            sql.push(" where ");
+            let mut and = "";
+            // todo: 如果有item_id, sql语句完全不一样
+            // if !params.item_id.is_empty() {
+            //     sql.push(&format!("{}  = ", and))
+            //         .push_bind(&params.name);
+            //     and = " and ";
+            // }
+
+            if params.in_out.is_some() {
+                sql.push(&format!("{} in_true_out_false = ", and))
+                    .push_bind(params.in_out.unwrap_or(true));
+                and = " and ";
+            }
+
+            // todo
+            // if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+            //     sql.push(&format!(" {} create_time >= ", and))
+            //         .push_bind(&params.create_time_st)
+            //         .push(&format!(" {} create_time <= ", and))
+            //         .push_bind(&params.create_time_ed);
+            // }
+        }
+
+        let page = params.page.unwrap_or(1);
+        let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+
+        sql.push(format!(
+            " order by id desc limit {page_size} offset {offset}",
+        ));
+
+        let buckets = sql
+            .build_query_as::<EmbryoInOutBucketModal>()
+            .fetch_all(self.db.get_pool())
+            .await?;
+
+        let bucket_ids = buckets.iter().map(|item| item.id).collect::<Vec<i32>>();
+        let bucket_total_count_total_price = sqlx::query!(
+            r#"
+            select
+                bucket_id,
+                sum(count) as total_count,
+                sum(current_total) as total_sum
+            from embryo_inout
+            where bucket_id = any($1) 
+            group by bucket_id;
+            "#,
+            &bucket_ids
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| {
+            (
+                item.bucket_id,
+                (
+                    item.total_count.unwrap_or(0) as i32,
+                    item.total_sum.unwrap_or(0) as i32,
+                ),
+            )
+        })
+        .collect::<HashMap<i32, (i32, i32)>>();
+
+        let bucket_images: HashMap<i32, Vec<String>> = HashMap::new();
+
+        let id_to_name = sqlx::query!("select id, name from accounts")
+            .fetch_all(self.db.get_pool())
+            .await?
+            .into_iter()
+            .map(|item| (item.id, item.name))
+            .collect::<HashMap<_, _>>();
+
+        let empty_str = "".to_string();
+        let empty_tuple = (0, 0);
+        let bucket_dto = buckets
+            .into_iter()
+            .map(|item| {
+                let account_name = id_to_name.get(&item.account_id).unwrap_or(&empty_str);
+                let count_and_sum = bucket_total_count_total_price
+                    .get(&item.id)
+                    .unwrap_or(&empty_tuple);
+                EmbryoInOutBucketDto::from(
+                    item,
+                    account_name,
+                    vec![],
+                    count_and_sum.0,
+                    count_and_sum.1,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        Ok(bucket_dto)
+    }
+
+    async fn inout_bucket_count(&self, params: &InoutBucketParams) -> ERPResult<i32> {
+        let mut sql: QueryBuilder<Postgres> =
+            QueryBuilder::new("select count(1) from item_inout_bucket ");
+        if !params.is_empty() {
+            sql.push(" where ");
+
+            let mut and = "";
+
+            // todo: 如果有item_id, sql语句完全不一样
+            // if !params.item_id.is_empty() {
+            //     sql.push(&format!("{}  = ", and))
+            //         .push_bind(&params.name);
+            //     and = " and ";
+            // }
+
+            if params.in_out.is_some() {
+                sql.push(&format!("{} in_true_out_false = ", and))
+                    .push_bind(params.in_out.unwrap_or(true));
+                and = " and ";
+            }
+
+            // todo
+            // if !params.create_time_st.is_empty() && !params.create_time_ed.is_empty() {
+            //     sql.push(&format!(" {} create_time >= ", and))
+            //         .push_bind(&params.create_time_st)
+            //         .push(&format!(" {} create_time <= ", and))
+            //         .push_bind(&params.create_time_ed);
+            // }
+        }
+
+        let count = sql
+            .build_query_as::<(i64,)>()
+            .fetch_one(self.db.get_pool())
+            .await?
+            .0 as i32;
+
+        Ok(count)
+    }
+
+    async fn inout_list_of_bucket(
+        &self,
+        params: &InoutListOfBucketParams,
+    ) -> ERPResult<Vec<EmbryoInOutDto>> {
+        let page = params.page.unwrap_or(1);
+        let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+
+        let inouts = sqlx::query_as!(
+            EmbryoInOutDto,
+            r#"
+            select 
+                ei.*, e.name as embryo_name, e.number, e.unit,
+                eib.account_id, eib.in_true_out_false, eib.via, eib.create_time,
+                a.name as account
+            from embryos e, embryo_inout ei, embryo_inout_bucket eib, accounts a 
+            where ei.bucket_id=eib.id and eib.account_id = a.id and e.id = ei.embryo_id
+                and eib.id = $1 
+            order by ei.id desc offset $2 limit $3
+            "#,
+            params.bucket_id,
+            offset as i64,
+            page_size as i64
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        Ok(inouts)
+    }
+
+    async fn inout_count_of_bucket(&self, params: &InoutListOfBucketParams) -> ERPResult<i32> {
+        Ok(sqlx::query!(
+            r#"
+            select count(1) from embryo_inout ei, embryo_inout_bucket eib
+            where ei.bucket_id = eib.id
+                and eib.id=$1;
+            "#,
+            params.bucket_id
+        )
+        .fetch_one(self.db.get_pool())
+        .await?
+        .count
+        .unwrap_or(0) as i32)
     }
 }

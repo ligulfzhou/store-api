@@ -108,7 +108,7 @@ impl EmbryoRepositoryTrait for EmbryoRepository {
             select 
                 ei.*, 
                 eib.in_true_out_false, eib.via, eib.create_time, eib.account_id,
-                e.name as embryo_name, 
+                e.name as embryo_name, e.unit, e.number,
                 a.name as account
             from 
                 embryo_inout ei, accounts a, embryo_inout_bucket eib, embryos e

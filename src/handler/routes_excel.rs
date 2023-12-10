@@ -239,11 +239,11 @@ async fn process_item_excel(
     let barcode_to_count = items
         .iter()
         .map(|item| (item.barcode.clone(), item.count))
-        .collect::<HashMap<_, _>>();
+        .collect::<HashMap<String, i32>>();
     let barcode_to_cost = items
         .iter()
         .map(|item| (item.barcode.clone(), item.cost))
-        .collect::<HashMap<_, _>>();
+        .collect::<HashMap<String, i32>>();
 
     // 用barcode去重
     let barcodes = items

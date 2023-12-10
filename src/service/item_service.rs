@@ -772,7 +772,8 @@ impl ItemServiceTrait for ItemService {
         Ok(sqlx::query!(
             r#"
             select count(1) from item_inout ii, item_inout_bucket iib
-            where iib.id=$1;
+            where ii.bucket_id = iib.id
+                and iib.id=$1;
             "#,
             params.bucket_id
         )

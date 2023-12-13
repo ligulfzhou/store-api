@@ -175,7 +175,7 @@ pub async fn parse_items(
         if cur.images.is_empty() && images.is_empty() {
             return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i)));
         }
-        if cur.images.is_empty() {
+        if !images.is_empty() {
             cur.images = match images.is_empty() {
                 true => vec![],
                 _ => {

@@ -130,7 +130,7 @@ pub fn parse_items(
             }
 
             let color_value = color_to_value.get(&cur.color).unwrap_or(&0);
-            cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price);
+            cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price / 5);
         }
 
         if cur.images.is_empty() && images.is_empty() {

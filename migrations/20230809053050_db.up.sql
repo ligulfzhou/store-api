@@ -10,14 +10,14 @@ create table cates
 );
 
 -- test
-insert into cates (cate_type, name)
-values (0, '大类1');
-insert into cates (cate_type, name)
-values (0, '大类1');
-insert into cates (cate_type, name, parent_id)
-values (1, '小类1', 1);
-insert into cates (cate_type, name, parent_id)
-values (1, '小类1', 2);
+-- insert into cates (cate_type, name)
+-- values (0, '大类1');
+-- insert into cates (cate_type, name)
+-- values (0, '大类1');
+-- insert into cates (cate_type, name, parent_id)
+-- values (1, '小类1', 1);
+-- insert into cates (cate_type, name, parent_id)
+-- values (1, '小类1', 2);
 
 -- 客户
 create table customers
@@ -38,11 +38,11 @@ create index idx_customers_type on customers (ty_pe);
 
 -- test
 insert into customers (name, ty_pe)
-values ('客户1', 2);
+values ('测试客户1', 2);
 insert into customers (name, ty_pe)
-values ('客户2', 1);
+values ('测试客户2', 1);
 insert into customers (name, ty_pe)
-values ('客户3', 2);
+values ('测试客户3', 2);
 
 -- 产品
 create table items

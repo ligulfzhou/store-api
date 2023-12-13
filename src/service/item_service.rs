@@ -202,14 +202,14 @@ impl ItemServiceTrait for ItemService {
                     true => {
                         let value = sqlx::query!(
                             r#"
-                        select value from color_settings where color = $1;
-                        "#,
+                            select value from color_settings where color = $1;
+                            "#,
                             &params.color
                         )
                         .fetch_one(self.db.get_pool())
                         .await?
                         .value;
-                        calculate_barcode(&params.number, value, params.price)
+                        calculate_barcode(&params.number, value, params.price / 5)
                     }
                     false => params.barcode.clone(),
                 };

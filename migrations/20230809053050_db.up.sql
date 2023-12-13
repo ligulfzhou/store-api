@@ -191,13 +191,11 @@ create table color_settings
 );
 create unique index uniq_color_setting_color on color_settings (color);
 insert into color_settings(color, value)
-values ('金', 1);
+values ('14K金', 1);
 insert into color_settings(color, value)
-values ('14K金', 2);
+values ('18K金', 2);
 insert into color_settings(color, value)
-values ('18K金', 3);
-insert into color_settings(color, value)
-values ('钢色', 4);
+values ('钢色', 3);
 
 create table customer_types
 (

@@ -224,7 +224,7 @@ async fn process_item_excel(
     account: &AccountDto,
 ) -> ERPResult<()> {
     tracing::info!("import excel....");
-    let items = parse_items(&file_path, color_to_value)?;
+    let items = parse_items(state, &file_path, color_to_value).await?;
     if items.len() == 0 {
         return Ok(());
     }

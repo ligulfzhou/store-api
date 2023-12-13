@@ -7,6 +7,7 @@ use crate::model::settings::{ColorSettingsModel, CustomerTypeModel, GlobalSettin
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -21,6 +22,10 @@ pub trait SettingsServiceTrait {
     async fn get_all_color_to_values(&self) -> ERPResult<Vec<ColorSettingsModel>>;
     async fn edit_color_to_value(&self, params: &ColorEditParams) -> ERPResult<()>;
     async fn delete_color_to_value(&self, params: &GenericDeleteParams) -> ERPResult<()>;
+    async fn add_multiple_color_to_value(
+        &self,
+        colors: Vec<String>,
+    ) -> ERPResult<HashMap<String, i32>>;
     async fn get_global_settings(&self) -> ERPResult<GlobalSettingsModel>;
     async fn update_global_settings(&self, params: &GlobalSettingsUpdateParams) -> ERPResult<()>;
 
@@ -129,6 +134,49 @@ impl SettingsServiceTrait for SettingsService {
             .await?;
 
         Ok(())
+    }
+
+    async fn add_multiple_color_to_value(
+        &self,
+        colors: Vec<String>,
+    ) -> ERPResult<HashMap<String, i32>> {
+        let mut max = sqlx::query!("select max(value) from color_settings")
+            .fetch_one(self.db.get_pool())
+            .await?
+            .max
+            .unwrap_or(0) as i32;
+
+        let mut color_models = vec![];
+        for color in colors {
+            color_models.push(ColorSettingsModel {
+                id: 0,
+                color,
+                value: max + 1,
+                create_time: Default::default(),
+            });
+            max += 1;
+        }
+
+        if !color_models.is_empty() {
+            let mut query_builder: QueryBuilder<Postgres> =
+                QueryBuilder::new("insert into color_settings (color, value) ");
+
+            query_builder.push_values(color_models, |mut b, item| {
+                b.push_bind(item.color).push_bind(item.value);
+            });
+
+            query_builder.push(" returning *;");
+
+            Ok(query_builder
+                .build_query_as::<ColorSettingsModel>()
+                .fetch_all(self.db.get_pool())
+                .await?
+                .into_iter()
+                .map(|item| (item.color, item.value))
+                .collect::<HashMap<_, _>>())
+        } else {
+            Ok(HashMap::new())
+        }
     }
 
     async fn get_global_settings(&self) -> ERPResult<GlobalSettingsModel> {

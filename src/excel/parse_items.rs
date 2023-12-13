@@ -1,6 +1,8 @@
 use crate::common::items::calculate_barcode;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::dto::dto_excel::ItemExcelDto;
+use crate::service::settings_service::SettingsServiceTrait;
+use crate::state::excel_state::ExcelState;
 use crate::{ERPError, ERPResult};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
@@ -32,10 +34,13 @@ lazy_static! {
     pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 12, 13];
 }
 
-pub fn parse_items(
+pub async fn parse_items(
+    state: &ExcelState,
     file_path: &str,
     color_to_value: HashMap<String, i32>,
 ) -> ERPResult<Vec<ItemExcelDto>> {
+    let mut new_color_to_value = color_to_value.clone();
+
     tracing::info!("file_path: {file_path}");
     let path = std::path::Path::new(file_path);
     let sheets = reader::xlsx::read(path).unwrap();
@@ -49,6 +54,39 @@ pub fn parse_items(
 
     let mut pre: Option<ItemExcelDto> = None;
 
+    // get colors first
+    let mut new_colors_to_empty_value = HashMap::new();
+    for i in 7..rows + 1 {
+        let cell = items_sheet.get_cell((8, i));
+        if cell.is_none() {
+            continue;
+        }
+        let cell_value = cell.unwrap().get_raw_value().to_string();
+        if cell_value.is_empty() {
+            continue;
+        }
+        if !new_color_to_value.contains_key(&cell_value) {
+            new_colors_to_empty_value.insert(cell_value, "");
+        }
+    }
+    if !new_colors_to_empty_value.is_empty() {
+        let new_colors = new_colors_to_empty_value
+            .into_iter()
+            .map(|item| item.0)
+            .collect::<Vec<_>>();
+
+        if !new_colors.is_empty() {
+            let c_to_v = state
+                .settings_service
+                .add_multiple_color_to_value(new_colors)
+                .await?;
+
+            c_to_v.into_iter().for_each(|(c, v)| {
+                new_color_to_value.insert(c, v);
+            });
+        }
+    }
+
     // 从第2行开始
     for i in 7..rows + 1 {
         print!("row: {}", i);
@@ -60,8 +98,6 @@ pub fn parse_items(
             cur.size = previous.size;
             cur.name = previous.name;
         }
-
-        // let mut cur = ItemExcelDto::default();
 
         let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
@@ -121,15 +157,18 @@ pub fn parse_items(
             }
         }
 
-        if cur.barcode.is_empty() {
-            if !color_to_value.contains_key(&cur.color) {
-                return Err(ERPError::ExcelError(format!(
-                    "第{}行的 颜色{} 没有在后台配置对应数值",
-                    i, cur.color
-                )));
-            }
+        if cur.color.is_empty() && cur.number.is_empty() && cur.cost == 0 && cur.price == 0 {
+            break;
+        }
 
-            let color_value = color_to_value.get(&cur.color).unwrap_or(&0);
+        if cur.barcode.is_empty() {
+            // if !new_color_to_value.contains_key(&cur.color) {
+            //     return Err(ERPError::ExcelError(format!(
+            //         "第{}行的 颜色{} 没有在后台配置对应数值",
+            //         i, cur.color
+            //     )));
+            // }
+            let color_value = new_color_to_value.get(&cur.color).unwrap_or(&0);
             cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price / 5);
         }
 

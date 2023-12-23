@@ -6,6 +6,7 @@ use crate::state::customer_state::CustomerState;
 use crate::state::embryo_state::EmbryoState;
 use crate::state::excel_state::ExcelState;
 use crate::state::item_state::ItemState;
+use crate::state::order_state::OrderState;
 use crate::state::settings_state::SettingsState;
 use axum::extract::DefaultBodyLimit;
 use axum::http::{header, Method};
@@ -62,6 +63,14 @@ pub fn routes(db: Arc<Database>) -> IntoMakeService<Router> {
         .merge(
             routes_cates::routes()
                 .with_state(CateState::new(&db))
+                .layer(axum::middleware::from_fn_with_state(
+                    auth_state.clone(),
+                    auth,
+                )),
+        )
+        .merge(
+            routes_orders::routes()
+                .with_state(OrderState::new(&db))
                 .layer(axum::middleware::from_fn_with_state(
                     auth_state.clone(),
                     auth,

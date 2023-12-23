@@ -53,14 +53,14 @@ pub struct QueryParams {
 pub struct OrderItemsParams {
     pub item_id: i32,
     pub count: i32,
-    pub price: i32,
-    pub origin_price: i32,
+    // pub price: i32,
+    // pub origin_price: i32,
     pub discount: i32,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateOrderParams {
-    pub account_id: i32,
+    // pub account_id: i32,
     pub customer_id: i32,
     pub items: Vec<OrderItemsParams>,
 }

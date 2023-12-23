@@ -1,6 +1,7 @@
 use crate::config::database::Database;
 use crate::service::customer_service::{CustomerService, CustomerServiceTrait};
 use crate::service::item_service::{ItemService, ItemServiceTrait};
+use crate::service::order_service::{OrderService, OrderServiceTrait};
 use crate::service::settings_service::{SettingsService, SettingsServiceTrait};
 use std::sync::Arc;
 
@@ -9,6 +10,7 @@ pub struct OrderState {
     pub customer_service: CustomerService,
     pub settings_service: SettingsService,
     pub item_service: ItemService,
+    pub order_service: OrderService,
     pub db: Arc<Database>,
 }
 
@@ -17,6 +19,7 @@ impl OrderState {
         Self {
             customer_service: CustomerService::new(db),
             settings_service: SettingsService::new(db),
+            order_service: OrderService::new(db),
             item_service: ItemService::new(db),
             db: Arc::clone(db),
         }

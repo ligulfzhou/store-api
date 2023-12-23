@@ -35,18 +35,45 @@ impl OrderDto {
     }
 }
 
+#[derive(Debug, Serialize, FromRow)]
+pub struct OrderInListDto {
+    pub id: i32,
+    pub account_id: i32,
+    pub account: String,
+    pub customer_id: i32,
+    pub customer: String,
+    pub item_images: Vec<String>,
+    pub create_time: NaiveDateTime,
+    pub total: i32,
+    pub count: i32,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
-    pub cate1_id: i32,
-    pub cate2_id: i32,
-    pub name: String,    // 产品名称
-    pub number: String,  // 货号
-    pub barcode: String, // 货号
+    pub customer_id: i32,
+    pub account_id: i32,
     pub create_time_st: String,
     pub create_time_ed: String,
 
     pub page: Option<i32>,
     pub page_size: Option<i32>,
+}
+
+impl QueryParams {
+    pub fn is_empty(&self) -> bool {
+        if self.customer_id != 0 {
+            return false;
+        }
+        if self.account_id != 0 {
+            return false;
+        }
+
+        if !self.create_time_ed.is_empty() && !self.create_time_st.is_empty() {
+            return false;
+        }
+
+        true
+    }
 }
 
 #[derive(Debug, Deserialize)]

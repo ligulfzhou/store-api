@@ -84,7 +84,7 @@ create table item_inout
     bucket_id     integer not null default 0,
     item_id       integer not null default 0,
     count         integer not null default 0,
-    current_cost integer not null default 0, -- 当时的价格
+    current_cost  integer not null default 0, -- 当时的价格
     current_total integer not null default 0  -- 当时的总额
 );
 -- create index idx_item_inout_account_create_time on item_inout (account_id);
@@ -122,7 +122,7 @@ create table embryo_inout
     bucket_id     integer not null default 0,
     embryo_id     integer not null default 0,
     count         integer not null default 0,
-    current_cost integer not null default 0, -- 当时的价格
+    current_cost  integer not null default 0, -- 当时的价格
     current_total integer not null default 0  -- 当时的总额
 );
 create index idx_embryo_inout_embryo_id on embryo_inout (embryo_id);
@@ -149,10 +149,10 @@ create table orders
     id          serial PRIMARY KEY,
     account_id  integer   not null default 0,    -- 操作人
     customer_id integer   not null default 0,    --
---     order_no    text      not null default '',   --
+    order_no    text      not null default '',   --
     create_time TIMESTAMP not null default now() -- 创建时间
 );
--- create index idx_orders_order_no on orders (order_no);
+create index idx_orders_order_no on orders (order_no);
 
 -- 订单商品
 create table order_items
@@ -164,6 +164,7 @@ create table order_items
     count        integer   not null default 0,
     origin_price integer   not null default 0,
     price        integer   not null default 0,
+    total_price  integer   not null default 0,
     discount     integer   not null default 100,
     create_time  TIMESTAMP not null default now() -- 创建时间
 );
@@ -208,3 +209,4 @@ insert into customer_types (ty_pe)
 values ('普通客户');
 insert into customer_types (ty_pe)
 values ('VIP客户');
+

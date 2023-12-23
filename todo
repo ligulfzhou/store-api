@@ -1,0 +1,5 @@
+alter table orders add column order_no text;
+
+alter table order_items add column total_price integer;
+alter table order_items alter COLUMN total_price set default 0;
+alter table order_items alter COLUMN total_price set not null ;

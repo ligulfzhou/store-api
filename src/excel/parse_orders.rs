@@ -7,34 +7,26 @@ use crate::{ERPError, ERPResult};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-/*图片(可多张) 名称	颜色	产品大类	产品小类(可空) 编号	条码(可空) 规格	单位	售价	成本	备注(可空) 数量(6位数字，688001，688002...)*/
-/* 名称	颜色	产品大类 编号 单位	售价	成本 数量 */
-
-/* 序号 编号 图片 规格 名称 产品大类 产品小类 电镀&颜色 条码 数量 单位 单价 售价 金额 备注 */
 lazy_static! {
     pub static ref J_TO_NAME: HashMap<i32, &'static str> = vec![
         (1, "序号"),
         (2, "编号"),
         (3, "图片"),
-        (4, "规格"),
+        (4, "尺寸"),
         (5, "名称"),
-        (6, "产品大类"),
-        (7, "产品小类"),
-        (8, "电镀&颜色"),
-        (9, "条码"),
-        (10, "数量"),
-        (11, "单位"),
-        (12, "成本"),
-        (13, "售价"),
-        (14, "金额"),
-        (15, "备注")
+        (6, "颜色"),
+        (7, "数量"),
+        (8, "单位"),
+        (9, "单价"),
+        (10, "金额"),
+        (11, "备注")
     ]
     .into_iter()
     .collect();
-    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 12, 13];
+    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 4, 5, 6, 8, 10, 11, 12, 13];
 }
 
-pub async fn parse_items(
+pub async fn parse_orders(
     state: &ExcelState,
     file_path: &str,
     color_to_value: HashMap<String, i32>,
@@ -162,12 +154,6 @@ pub async fn parse_items(
         }
 
         if cur.barcode.is_empty() {
-            // if !new_color_to_value.contains_key(&cur.color) {
-            //     return Err(ERPError::ExcelError(format!(
-            //         "第{}行的 颜色{} 没有在后台配置对应数值",
-            //         i, cur.color
-            //     )));
-            // }
             let color_value = new_color_to_value.get(&cur.color).unwrap_or(&0);
             cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price / 5);
         }

@@ -463,8 +463,8 @@ async fn handle_cates(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<C
         })
         .collect::<HashMap<String, i32>>();
 
-    let mut existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>> =
-        HashMap::new();
+    // let mut existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>> =
+    let mut existing_cate1_id_to_cate2_to_cate2_id = HashMap::new();
     for cate in cates.iter() {
         if cate.cate_type == 0 {
             continue;

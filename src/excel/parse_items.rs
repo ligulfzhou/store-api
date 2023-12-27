@@ -31,7 +31,7 @@ lazy_static! {
     ]
     .into_iter()
     .collect();
-    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 12, 13];
+    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 13];
 }
 
 pub async fn parse_items(

@@ -1,9 +1,11 @@
 use crate::common::items::calculate_barcode;
+use crate::common::list::pickup_most_common_item;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::dto::dto_excel::ItemExcelDto;
 use crate::service::settings_service::SettingsServiceTrait;
 use crate::state::excel_state::ExcelState;
 use crate::{ERPError, ERPResult};
+use itertools::Itertools;
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
@@ -34,11 +36,11 @@ lazy_static! {
     pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 13];
 }
 
-pub async fn parse_items(
+pub async fn parse_items<'a>(
     state: &ExcelState,
     file_path: &str,
     color_to_value: HashMap<String, i32>,
-) -> ERPResult<Vec<ItemExcelDto>> {
+) -> ERPResult<Vec<ItemExcelDto<'a>>> {
     let mut new_color_to_value = color_to_value.clone();
 
     tracing::info!("file_path: {file_path}");
@@ -51,7 +53,6 @@ pub async fn parse_items(
     let (cols, rows) = items_sheet.get_highest_column_and_row();
 
     let mut items = vec![];
-
     let mut pre: Option<ItemExcelDto> = None;
 
     // get colors first
@@ -93,18 +94,19 @@ pub async fn parse_items(
 
         let mut cur = ItemExcelDto::default();
         if let Some(previous) = pre {
-            cur.images = previous.images;
+            // cur.images = previous.images;
+            cur.index = previous.index;
             cur.number = previous.number;
             cur.size = previous.size;
             cur.name = previous.name;
         }
 
-        let mut images: Vec<&Image> = vec![];
+        // let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
             // 图片在第3列
             if j == 3 {
-                images = items_sheet.get_images((j, i));
-                print!("images count: {}", images.len());
+                cur.raw_excel_images = items_sheet.get_images((j, i)).clone();
+                print!("images count: {}", cur.raw_excel_images.len());
             }
 
             let cell = items_sheet.get_cell((j, i));
@@ -141,6 +143,7 @@ pub async fn parse_items(
             }
 
             match j {
+                1 => cur.index = cell_value.trim().parse::<i32>().unwrap_or(0),
                 2 => cur.number = cell_value.trim().to_string(),
                 4 => cur.size = cell_value.trim().to_string(),
                 5 => cur.name = cell_value.trim().to_string(),
@@ -162,36 +165,31 @@ pub async fn parse_items(
         }
 
         if cur.barcode.is_empty() {
-            // if !new_color_to_value.contains_key(&cur.color) {
-            //     return Err(ERPError::ExcelError(format!(
-            //         "第{}行的 颜色{} 没有在后台配置对应数值",
-            //         i, cur.color
-            //     )));
-            // }
             let color_value = new_color_to_value.get(&cur.color).unwrap_or(&0);
             cur.barcode = calculate_barcode(&cur.number, *color_value, cur.price / 5);
         }
 
-        if cur.images.is_empty() && images.is_empty() {
-            return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i)));
-        }
-        if !images.is_empty() {
-            cur.images = match images.is_empty() {
-                true => vec![],
-                _ => {
-                    let mut tmp = vec![];
-                    for (index, real_goods_image) in images.into_iter().enumerate() {
-                        let sku_image_name = format!("{}-{}.png", cur.barcode, index);
-                        let goods_image_path =
-                            format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
-                        real_goods_image.download_image(&goods_image_path);
-                        tmp.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
-                    }
+        // if cur.images.is_empty() && images.is_empty() {
+        //     return Err(ERPError::ExcelError(format!("第{}行的 图片 为空", i)));
+        // }
 
-                    tmp
-                }
-            };
-        }
+        // if !images.is_empty() {
+        //     cur.images = match images.is_empty() {
+        //         true => vec![],
+        //         _ => {
+        //             let mut tmp = vec![];
+        //             for (index, real_goods_image) in images.into_iter().enumerate() {
+        //                 let sku_image_name = format!("{}-{}.png", cur.barcode, index);
+        //                 let goods_image_path =
+        //                     format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+        //                 real_goods_image.download_image(&goods_image_path);
+        //                 tmp.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+        //             }
+        //
+        //             tmp
+        //         }
+        //     };
+        // }
 
         tracing::info!("rows#{:?}: {:?}", i, cur);
         pre = Some(cur.clone());
@@ -200,5 +198,76 @@ pub async fn parse_items(
 
     print!("rows: {rows:}: cols: {cols:}");
 
-    Ok(items)
+    let mut index_to_items = HashMap::new();
+    items.clone().into_iter().for_each(|item| {
+        index_to_items
+            .entry(item.index)
+            .or_insert(vec![])
+            .push(item);
+    });
+
+    let mut fixed_items = vec![];
+
+    for (index, index_items) in index_to_items.into_iter().sorted_by_key(|x| x.0) {
+        let (cate1, cate2) = get_cate1_and_cate2_from_items(index, &index_items)?;
+        let images = get_images_from_items(index, &index_items)?;
+
+        let index_items_clone = index_items
+            .clone()
+            .into_iter()
+            .map(|mut item| ItemExcelDto {
+                cates1: cate1.clone(),
+                cates2: cate2.clone(),
+                images: images.clone(),
+                raw_excel_images: vec![],
+                ..item
+            })
+            .collect::<Vec<_>>();
+
+        fixed_items.extend(index_items_clone);
+    }
+
+    Ok(fixed_items)
+}
+
+fn get_cate1_and_cate2_from_items(
+    index: i32,
+    items: &[ItemExcelDto<'_>],
+) -> ERPResult<(String, String)> {
+    let cate1s = items.iter().map(|item| &item.cates1).collect::<Vec<_>>();
+    let cate2s = items.iter().map(|item| &item.cates2).collect::<Vec<_>>();
+
+    let empty = "".to_string();
+
+    let cate1 = pickup_most_common_item(&cate1s)
+        .unwrap_or(&empty)
+        .to_string();
+
+    let cate2 = pickup_most_common_item(&cate2s)
+        .unwrap_or(&empty)
+        .to_string();
+
+    if cate1.is_empty() || cate2.is_empty() {
+        return Err(ERPError::NotFound(format!("序号{}内未找到大小类", index)));
+    }
+
+    Ok((cate1, cate2))
+}
+
+fn get_images_from_items(index: i32, items: &[ItemExcelDto<'_>]) -> ERPResult<Vec<String>> {
+    for item in items.iter() {
+        if !item.raw_excel_images.is_empty() {
+            let mut images = vec![];
+            for (image_index, real_goods_image) in item.raw_excel_images.iter().enumerate() {
+                let sku_image_name = format!("{}-{}.png", item.barcode, image_index);
+                let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
+                real_goods_image.download_image(&goods_image_path);
+                images.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
+            }
+
+            return Ok(images);
+        }
+    }
+
+    Err(ERPError::NotFound(format!("序号 {} 没找到图片", index)))
 }

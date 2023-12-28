@@ -403,7 +403,10 @@ async fn process_item_excel(
     Ok(())
 }
 
-async fn check_if_excel_data_valid(_state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<()> {
+async fn check_if_excel_data_valid(
+    _state: &ExcelState,
+    items: &[ItemExcelDto<'_>],
+) -> ERPResult<()> {
     // 不能为空的字段，图片（可多张），名称，颜色，大类，单位，售价，成本，编号
     // no need
 
@@ -445,7 +448,7 @@ struct CateData {
     existing_cate1_to_id: HashMap<String, i32>,
     existing_cate1_id_to_cate2_to_cate2_id: HashMap<i32, HashMap<String, i32>>,
 }
-async fn handle_cates(state: &ExcelState, items: &[ItemExcelDto]) -> ERPResult<CateData> {
+async fn handle_cates(state: &ExcelState, items: &[ItemExcelDto<'_>]) -> ERPResult<CateData> {
     // 不需要处理，只需要把cates记录到数据库里
     // todo!()
 

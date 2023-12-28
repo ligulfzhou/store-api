@@ -33,7 +33,7 @@ lazy_static! {
     ]
     .into_iter()
     .collect();
-    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 6, 8, 10, 11, 13];
+    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 5, 8, 10, 11, 13];
 }
 
 pub async fn parse_items<'a>(
@@ -191,7 +191,7 @@ pub async fn parse_items<'a>(
         //     };
         // }
 
-        tracing::info!("rows#{:?}: {:?}", i, cur);
+        // tracing::info!("rows#{:?}: {:?}", i, cur);
         pre = Some(cur.clone());
         items.push(cur);
     }

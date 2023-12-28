@@ -1,5 +1,5 @@
 use crate::common::items::calculate_barcode;
-use crate::common::list::pickup_most_common_item;
+use crate::common::list::pickup_most_common_string;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::dto::dto_excel::ItemExcelDto;
 use crate::service::settings_service::SettingsServiceTrait;
@@ -66,10 +66,20 @@ pub async fn parse_items<'a>(
         if cell_value.is_empty() {
             continue;
         }
-        if !new_color_to_value.contains_key(&cell_value) {
-            new_colors_to_empty_value.insert(cell_value, "");
+
+        let color = cell_value.trim().to_string().to_ascii_uppercase();
+
+        // tracing::info!(
+        //     "color: {:?}, contains: {:?}",
+        //     color,
+        //     new_color_to_value.contains_key(&color)
+        // );
+        if !new_color_to_value.contains_key(&color) {
+            new_colors_to_empty_value.entry(color).or_insert("");
         }
     }
+    // tracing::info!("new_colors_to_empty_value: {:?}", new_colors_to_empty_value);
+
     if !new_colors_to_empty_value.is_empty() {
         let new_colors = new_colors_to_empty_value
             .into_iter()
@@ -191,7 +201,16 @@ pub async fn parse_items<'a>(
         //     };
         // }
 
-        // tracing::info!("rows#{:?}: {:?}", i, cur);
+        tracing::info!(
+            "index: {}, rows#{:?}: {:?}, {:?}, {:?}，{:?},{:?}",
+            cur.index,
+            i,
+            cur.number,
+            cur.color,
+            cur.price,
+            new_color_to_value.get(&cur.color).unwrap_or(&0),
+            cur.barcode
+        );
         pre = Some(cur.clone());
         items.push(cur);
     }
@@ -237,15 +256,8 @@ fn get_cate1_and_cate2_from_items(
     let cate1s = items.iter().map(|item| &item.cates1).collect::<Vec<_>>();
     let cate2s = items.iter().map(|item| &item.cates2).collect::<Vec<_>>();
 
-    let empty = "".to_string();
-
-    let cate1 = pickup_most_common_item(&cate1s)
-        .unwrap_or(&empty)
-        .to_string();
-
-    let cate2 = pickup_most_common_item(&cate2s)
-        .unwrap_or(&empty)
-        .to_string();
+    let cate1 = pickup_most_common_string(&cate1s);
+    let cate2 = pickup_most_common_string(&cate2s);
 
     if cate1.is_empty() || cate2.is_empty() {
         return Err(ERPError::NotFound(format!("序号{}内未找到大小类", index)));

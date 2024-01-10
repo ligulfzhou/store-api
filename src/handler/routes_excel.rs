@@ -1,15 +1,19 @@
 use crate::config::database::DatabaseTrait;
 use crate::dto::dto_account::AccountDto;
-use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto};
+use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto, OrderExcelDto};
+use crate::dto::dto_orders::CreateOrderParams;
 use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
+use crate::excel::parse_orders::{parse_order_info, parse_orders};
 use crate::model::cates::CateModel;
 use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoInOutModel};
 use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
+use crate::model::order::{OrderItemModel, OrderModel};
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::service::embryo_service::EmbryoServiceTrait;
 use crate::service::item_service::ItemServiceTrait;
+use crate::service::order_service::OrderServiceTrait;
 use crate::service::settings_service::SettingsServiceTrait;
 use crate::state::excel_state::ExcelState;
 use crate::{ERPError, ERPResult};
@@ -17,7 +21,8 @@ use axum::extract::{Multipart, State};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
-use chrono::{Datelike, Timelike, Utc};
+use axum_extra::handler::HandlerCallWithExtractors;
+use chrono::{Datelike, NaiveDateTime, Timelike, Utc};
 use rand::Rng;
 use std::collections::HashMap;
 use std::fs;
@@ -54,6 +59,7 @@ async fn import_excel(
 ) -> ERPResult<APIEmptyResponse> {
     let mut file_path: String = "".to_string();
     let mut tp: i32 = 0;
+    let mut customer_id: i32 = 0;
 
     // 获取 二进制文件，保存到本地/tmp，并且目录是当前的时间
     while let Some(field) = multipart.next_field().await.unwrap() {
@@ -81,6 +87,9 @@ async fn import_excel(
         } else if name == "tp" {
             let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
             tp = data.parse::<i32>().unwrap_or(0);
+        } else if name == "customer_id" {
+            let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
+            customer_id = data.parse::<i32>().unwrap_or(0);
         }
     }
 
@@ -99,10 +108,175 @@ async fn import_excel(
 
     match tp {
         0 => process_item_excel(&state, &file_path, color_to_value, &account).await?,
-        _ => process_embryo_excel(&state, &file_path, color_to_value, &account).await?,
+        1 => process_embryo_excel(&state, &file_path, color_to_value, &account).await?,
+        3 => process_order_excel(&state, &file_path, color_to_value, customer_id, &account).await?,
+        _ => process_item_excel(&state, &file_path, color_to_value, &account).await?,
     }
 
     Ok(APIEmptyResponse::new())
+}
+
+async fn process_order_excel(
+    state: &ExcelState,
+    file_path: &str,
+    _color_to_value: HashMap<String, i32>,
+    customer_id: i32,
+    account: &AccountDto,
+) -> ERPResult<()> {
+    tracing::info!("import excel for order....");
+    let order_info = parse_order_info(file_path).await?;
+    let items = parse_orders(file_path).await?;
+
+    tracing::info!("{:?}", order_info);
+    tracing::info!("{:?}", items);
+
+    let item_ids = check_order_data_valid(state, &items).await?;
+    let item_models = state.item_service.get_item_with_ids(item_ids).await?;
+    let mut number_to_color_to_id = HashMap::new();
+    item_models.iter().for_each(|item| {
+        number_to_color_to_id
+            .entry(item.number.clone())
+            .or_insert(HashMap::new())
+            .insert(item.color.clone(), item.id);
+    });
+    let id_to_item = item_models
+        .into_iter()
+        .map(|item| (item.id, item))
+        .collect::<HashMap<i32, ItemsModel>>();
+
+    let order_create_time = NaiveDateTime::default();
+    let order_id = state
+        .order_service
+        .add_order(&OrderModel {
+            id: 0,
+            order_no: "".to_string(),
+            account_id: account.id,
+            customer_id,
+            order_date: order_info.order_date,
+            delivery_date: order_info.delivery_date,
+            create_time: order_create_time,
+        })
+        .await?;
+
+    let empty_color_to_id_hashmap: HashMap<String, i32> = HashMap::new();
+
+    let bucket_id = state
+        .item_service
+        .add_inout_bucket(ItemInOutBucketModal {
+            id: 0,
+            account_id: account.id,
+            in_true_out_false: false,
+            via: "order_excel".to_string(),
+            order_id,
+            create_time: order_create_time,
+        })
+        .await?
+        .id;
+
+    let item_inouts = items
+        .iter()
+        .map(|item| {
+            let item_id = number_to_color_to_id
+                .get(&item.number)
+                .unwrap_or(&empty_color_to_id_hashmap)
+                .get(&item.color)
+                .unwrap();
+
+            ItemsInOutModel {
+                id: 0,
+                bucket_id,
+                item_id: *item_id,
+                count: item.count,
+                current_cost: item.price,
+                current_total: item.total,
+            }
+        })
+        .collect::<Vec<ItemsInOutModel>>();
+
+    state
+        .item_service
+        .add_multiple_items_inouts(&item_inouts)
+        .await?;
+
+    let order_items = items
+        .into_iter()
+        .map(|item| {
+            let item_id = number_to_color_to_id
+                .get(&item.number)
+                .unwrap_or(&empty_color_to_id_hashmap)
+                .get(&item.color)
+                .unwrap();
+            let item_model = id_to_item.get(item_id).unwrap();
+
+            OrderItemModel {
+                id: 0,
+                order_id,
+                index: item.index,
+                item_id: *item_id,
+                count: item.count,
+                origin_price: item_model.price,
+                price: item.price,
+                total_price: item.total,
+                discount: 0,
+                create_time: order_create_time,
+            }
+        })
+        .collect::<Vec<OrderItemModel>>();
+
+    state
+        .order_service
+        .insert_just_order_items(&order_items)
+        .await?;
+
+    Ok(())
+}
+
+async fn check_order_data_valid(
+    state: &ExcelState,
+    excel_items: &[OrderExcelDto],
+) -> ERPResult<Vec<i32>> {
+    let item_numbers = excel_items
+        .iter()
+        .map(|item| item.number.clone())
+        .collect::<Vec<String>>();
+
+    let items = state
+        .item_service
+        .get_item_with_numbers(item_numbers)
+        .await?;
+
+    let mut item_number_to_colors = HashMap::new();
+    items.iter().for_each(|item| {
+        item_number_to_colors
+            .entry(item.number.clone())
+            .or_insert(vec![])
+            .push(item.color.clone());
+    });
+
+    let empty_color_vec: Vec<String> = vec![];
+    for item in excel_items {
+        let colors = item_number_to_colors
+            .get(&item.number)
+            .unwrap_or(&empty_color_vec);
+
+        if !colors.contains(&item.color) {
+            return Err(ERPError::NotFound(format!(
+                "编号为{} 和 颜色为{} 的产品未预先录入",
+                item.number, item.color
+            )));
+        }
+    }
+
+    // let mut number_to_color_to_id = HashMap::new();
+    // items.into_iter().for_each(|item| {
+    //     number_to_color_to_id
+    //         .entry(item.number)
+    //         .or_insert(HashMap::new())
+    //         .insert(item.color, item.id);
+    // });
+    // Ok(number_to_color_to_id)
+
+    Ok(items.into_iter().map(|item| item.id).collect::<Vec<i32>>())
 }
 
 /// for embryo
@@ -216,7 +390,6 @@ fn check_embryo_date_valid(items: &[EmbryoExcelDto]) -> ERPResult<()> {
 }
 
 /// for items
-
 async fn process_item_excel(
     state: &ExcelState,
     file_path: &str,

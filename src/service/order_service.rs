@@ -19,18 +19,19 @@ pub struct OrderService {
 #[async_trait]
 pub trait OrderServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
-
     async fn create_order(&self, account_id: i32, params: &CreateOrderParams) -> ERPResult<i32>;
-
+    async fn add_order(&self, order: &OrderModel) -> ERPResult<i32>;
     async fn insert_order_items(
         &self,
         items: &[OrderItemsParams],
         order_id: i32,
     ) -> ERPResult<Vec<OrderItemModel>>;
-
+    async fn insert_just_order_items(
+        &self,
+        items: &[OrderItemModel],
+    ) -> ERPResult<Vec<OrderItemModel>>;
     async fn get_order_list(&self, params: &QueryParams) -> ERPResult<Vec<OrderInListDto>>;
     async fn get_count_order_list(&self, params: &QueryParams) -> ERPResult<i32>;
-
     async fn get_order(&self, order_id: i32) -> ERPResult<OrderDto>;
 }
 
@@ -64,6 +65,24 @@ impl OrderServiceTrait for OrderService {
         Ok(order.id)
     }
 
+    async fn add_order(&self, order: &OrderModel) -> ERPResult<i32> {
+        let order = sqlx::query!(
+            r#"
+            insert into orders(account_id, customer_id, order_date, delivery_date)
+            values ($1, $2, $3, $4) 
+            returning *;
+            "#,
+            order.account_id,
+            order.customer_id,
+            order.order_date,
+            order.delivery_date
+        )
+        .fetch_one(self.db.get_pool())
+        .await?;
+
+        Ok(order.id)
+    }
+
     async fn insert_order_items(
         &self,
         items: &[OrderItemsParams],
@@ -93,6 +112,33 @@ impl OrderServiceTrait for OrderService {
                 .push_bind(*origin_price)
                 .push_bind(item.discount)
                 .push_bind(total_price);
+        });
+        query_builder.push(" returning *;");
+
+        let res = query_builder
+            .build_query_as::<OrderItemModel>()
+            .fetch_all(self.db.get_pool())
+            .await?;
+
+        Ok(res)
+    }
+
+    async fn insert_just_order_items(
+        &self,
+        items: &[OrderItemModel],
+    ) -> ERPResult<Vec<OrderItemModel>> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "insert into order_items (order_id, item_id, count, price, origin_price, discount, total_price) ",
+        );
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(item.order_id)
+                .push_bind(item.item_id)
+                .push_bind(item.count)
+                .push_bind(item.price)
+                .push_bind(item.origin_price)
+                .push_bind(item.discount)
+                .push_bind(item.total_price);
         });
         query_builder.push(" returning *;");
 
@@ -180,13 +226,16 @@ impl OrderServiceTrait for OrderService {
         .await?
         .into_iter()
         .for_each(|item| {
+            print!("item: {:?}", item);
             if !item.images.is_empty() {
-                order_id_to_images
-                    .entry(item.order_id)
-                    .or_insert(vec![])
-                    .push(item.images[0].clone());
+                let cur_images = order_id_to_images.entry(item.order_id).or_insert(vec![]);
+                if cur_images.len() >= 3 {
+                    return;
+                }
+                cur_images.push(item.images[0].clone());
             }
         });
+        print!("order_id_to_images: {:?}", order_id_to_images);
 
         let empty_str_arr: Vec<String> = vec![];
         let order_list = orders

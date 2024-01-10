@@ -39,6 +39,7 @@ async-trait = "0.1"
 # calamine does not support reading image from cell
 # and then i choose umya-spreadsheet
 umya-spreadsheet = "1.0.0"
+regex = "1.9.3"
 
 [dev-dependencies]
 anyhow = "1.0.72"

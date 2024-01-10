@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime};
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OrderModel {
@@ -6,6 +6,8 @@ pub struct OrderModel {
     pub order_no: String,
     pub account_id: i32,
     pub customer_id: i32,
+    pub order_date: NaiveDate,
+    pub delivery_date: NaiveDate,
     pub create_time: NaiveDateTime,
 }
 
@@ -18,6 +20,7 @@ pub struct OrderItemModel {
     pub count: i32,
     pub origin_price: i32,
     pub price: i32,
+    pub total_price: i32,
     pub discount: i32,
     pub create_time: NaiveDateTime,
 }

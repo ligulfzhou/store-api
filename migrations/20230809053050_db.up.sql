@@ -72,7 +72,7 @@ create table item_inout_bucket
     id                serial PRIMARY KEY,
     account_id        integer   not null default 0,
     in_true_out_false bool      not null default true,
-    via               text      not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
+    via               text      not null default '', -- form / excel / order_excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
     order_id          integer   not null default 0,
     create_time       TIMESTAMP not null default now()
 );
@@ -146,11 +146,13 @@ values ('测试账号', 'test', 'test');
 -- 订单
 create table orders
 (
-    id          serial PRIMARY KEY,
-    account_id  integer   not null default 0,    -- 操作人
-    customer_id integer   not null default 0,    --
-    order_no    text      not null default '',   --
-    create_time TIMESTAMP not null default now() -- 创建时间
+    id            serial PRIMARY KEY,
+    account_id    integer   not null default 0,            -- 操作人
+    customer_id   integer   not null default 0,            --
+    order_no      text      not null default '',           --
+    order_date    DATE      not null default current_date, -- 订单日期
+    delivery_date DATE      not null default current_date, -- 交货日期
+    create_time   TIMESTAMP not null default now()         -- 创建时间
 );
 create index idx_orders_order_no on orders (order_no);
 

@@ -4,7 +4,7 @@
 
 pub mod parse_embryo;
 pub mod parse_items;
-mod parse_orders;
+pub mod parse_orders;
 
 // pub trait OrderExcelHandler {
 //     fn parse_order_info(&self, sheet: &Worksheet) -> OrderInfo {

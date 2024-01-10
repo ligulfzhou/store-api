@@ -90,4 +90,6 @@ pub struct CreateOrderParams {
     // pub account_id: i32,
     pub customer_id: i32,
     pub items: Vec<OrderItemsParams>,
+    // pub order_date: String,
+    // pub delivery_date: String,
 }

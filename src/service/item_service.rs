@@ -26,6 +26,8 @@ pub trait ItemServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
     async fn get_item_list(&self, params: &QueryParams) -> ERPResult<Vec<ItemsDto>>;
     async fn get_item_count(&self, params: &QueryParams) -> ERPResult<i32>;
+    async fn get_item_with_numbers(&self, numbers: Vec<String>) -> ERPResult<Vec<ItemsModel>>;
+    async fn get_item_with_ids(&self, ids: Vec<i32>) -> ERPResult<Vec<ItemsModel>>;
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()>;
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()>;
     async fn insert_multiple_items(&self, rows: &[ItemsModel]) -> ERPResult<Vec<ItemsModel>>;
@@ -192,6 +194,24 @@ impl ItemServiceTrait for ItemService {
             .0 as i32;
 
         Ok(count)
+    }
+
+    async fn get_item_with_numbers(&self, numbers: Vec<String>) -> ERPResult<Vec<ItemsModel>> {
+        Ok(sqlx::query_as!(
+            ItemsModel,
+            "select * from items where number = any($1)",
+            &numbers
+        )
+        .fetch_all(self.db.get_pool())
+        .await?)
+    }
+
+    async fn get_item_with_ids(&self, ids: Vec<i32>) -> ERPResult<Vec<ItemsModel>> {
+        Ok(
+            sqlx::query_as!(ItemsModel, "select * from items where id = any($1)", &ids)
+                .fetch_all(self.db.get_pool())
+                .await?,
+        )
     }
 
     async fn edit_item(&self, params: &EditParams) -> ERPResult<()> {

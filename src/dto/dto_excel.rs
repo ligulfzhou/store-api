@@ -39,3 +39,18 @@ pub struct EmbryoExcelDto {
     // 数量
     pub notes: String,
 }
+
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+pub struct OrderExcelDto {
+    pub index: i32,     // 序号
+    pub number: String, // 货号
+    // pub images: Vec<String>,
+    pub size: String,  // 规格
+    pub name: String,  // 名称
+    pub color: String, // 颜色
+    pub count: i32,    // 数量
+    pub unit: String,  // 单位
+    pub price: i32,    // 标准售价
+    pub total: i32,    // 金额
+    pub notes: String, // 备注
+}

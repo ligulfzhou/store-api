@@ -67,11 +67,9 @@ impl QueryParams {
         if self.account_id != 0 {
             return false;
         }
-
         if !self.create_time_ed.is_empty() && !self.create_time_st.is_empty() {
             return false;
         }
-
         true
     }
 }

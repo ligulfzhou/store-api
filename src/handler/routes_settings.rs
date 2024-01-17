@@ -16,6 +16,10 @@ use axum_extra::extract::WithRejection;
 
 pub fn routes() -> Router<SettingsState> {
     Router::new()
+        .route(
+            "/api/settings/color/value/sort/by/color",
+            get(api_get_color_values),
+        )
         .route("/api/settings/color/value", get(api_get_color_values))
         .route(
             "/api/settings/edit/color/value",
@@ -39,6 +43,17 @@ pub fn routes() -> Router<SettingsState> {
             "/api/settings/delete/customer/type",
             post(api_delete_customer_type),
         )
+}
+
+async fn api_get_color_values_sort_by_color(
+    State(state): State<SettingsState>,
+) -> ERPResult<APIListResponse<ColorSettingsModel>> {
+    tracing::info!("->> {:<12}, api_get_color_values", "handler");
+
+    let color_values = state.settings_service.get_all_color_sort_by_color().await?;
+    let len = color_values.len() as i32;
+
+    Ok(APIListResponse::new(color_values, len))
 }
 
 async fn api_get_color_values(

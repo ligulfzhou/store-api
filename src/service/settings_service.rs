@@ -18,7 +18,7 @@ pub struct SettingsService {
 #[async_trait]
 pub trait SettingsServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
-
+    async fn get_all_color_sort_by_color(&self) -> ERPResult<Vec<ColorSettingsModel>>;
     async fn get_all_color_to_values(&self) -> ERPResult<Vec<ColorSettingsModel>>;
     async fn edit_color_to_value(&self, params: &ColorEditParams) -> ERPResult<()>;
     async fn delete_color_to_value(&self, params: &GenericDeleteParams) -> ERPResult<()>;
@@ -28,7 +28,6 @@ pub trait SettingsServiceTrait {
     ) -> ERPResult<HashMap<String, i32>>;
     async fn get_global_settings(&self) -> ERPResult<GlobalSettingsModel>;
     async fn update_global_settings(&self, params: &GlobalSettingsUpdateParams) -> ERPResult<()>;
-
     async fn get_customer_types(&self) -> ERPResult<Vec<CustomerTypeModel>>;
     async fn edit_customer_type(&self, params: &CustomerTypeEditParams) -> ERPResult<()>;
     async fn delete_customer_type(&self, params: &GenericDeleteParams) -> ERPResult<()>;
@@ -37,6 +36,16 @@ pub trait SettingsServiceTrait {
 impl SettingsServiceTrait for SettingsService {
     fn new(db: &Arc<Database>) -> Self {
         Self { db: Arc::clone(db) }
+    }
+    async fn get_all_color_sort_by_color(&self) -> ERPResult<Vec<ColorSettingsModel>> {
+        let css = sqlx::query_as!(
+            ColorSettingsModel,
+            "select * from color_settings order by color;"
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        Ok(css)
     }
 
     async fn get_all_color_to_values(&self) -> ERPResult<Vec<ColorSettingsModel>> {

@@ -154,7 +154,9 @@ create table orders
     delivery_date DATE      not null default current_date, -- 交货日期
     create_time   TIMESTAMP not null default now()         -- 创建时间
 );
-create index idx_orders_order_no on orders (order_no);
+create index idx_orders_order_date on orders (order_date);
+create index idx_orders_delivery_date on orders (delivery_date);
+-- create index idx_orders_order_no on orders (order_no);
 
 -- 订单商品
 create table order_items

@@ -18,7 +18,7 @@ pub fn routes() -> Router<SettingsState> {
     Router::new()
         .route(
             "/api/settings/color/value/sort/by/color",
-            get(api_get_color_values),
+            get(api_get_color_values_sort_by_color),
         )
         .route("/api/settings/color/value", get(api_get_color_values))
         .route(

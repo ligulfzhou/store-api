@@ -234,7 +234,7 @@ pub async fn parse_items<'a>(
         let index_items_clone = index_items
             .clone()
             .into_iter()
-            .map(|mut item| ItemExcelDto {
+            .map(|item| ItemExcelDto {
                 cates1: cate1.clone(),
                 cates2: cate2.clone(),
                 images: images.clone(),

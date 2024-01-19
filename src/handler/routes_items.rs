@@ -57,8 +57,8 @@ async fn api_item_delete(
 }
 
 async fn api_item_stock(
-    State(state): State<ItemState>,
-    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
+    State(_state): State<ItemState>,
+    WithRejection(Query(_params), _): WithRejection<Query<QueryParams>, ERPError>,
 ) -> ERPResult<APIListResponse<ItemsDto>> {
     // let items = state.item_service.get_item_list(&params).await?;
     // let items_dto = state.item_service.to_items_dto(items).await?;

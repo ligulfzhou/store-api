@@ -4,7 +4,6 @@ use crate::dto::dto_orders::{
 };
 use crate::response::api_response::{APIDataResponse, APIListResponse};
 use crate::service::order_service::OrderServiceTrait;
-use crate::service::settings_service::SettingsServiceTrait;
 use crate::state::order_state::OrderState;
 use crate::{ERPError, ERPResult};
 use axum::extract::Query;
@@ -38,7 +37,7 @@ async fn api_order_detail(
 
 async fn api_order_list(
     State(state): State<OrderState>,
-    Extension(account): Extension<AccountDto>,
+    Extension(_account): Extension<AccountDto>,
     WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderInListDto>> {
     tracing::info!("api_order_list...");

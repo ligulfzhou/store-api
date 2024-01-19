@@ -1,4 +1,3 @@
-use crate::model::order::{OrderItemModel, OrderModel};
 use chrono::{NaiveDate, NaiveDateTime};
 use sqlx::FromRow;
 

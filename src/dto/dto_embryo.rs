@@ -1,4 +1,4 @@
-use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoInOutModel, EmbryoModel};
+use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoModel};
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
 

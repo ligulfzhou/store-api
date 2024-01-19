@@ -1,6 +1,6 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::dto::dto_embryo::{EmbryoDto, EmbryoInOutDto};
-use crate::model::embryo::{EmbryoInOutModel, EmbryoModel};
+use crate::model::embryo::EmbryoModel;
 use crate::ERPResult;
 use async_trait::async_trait;
 use sqlx;
@@ -22,7 +22,7 @@ pub trait EmbryoRepositoryTrait {
     async fn inout_list_of_embryo(
         &self,
         embryo_id: i32,
-        account: &str,
+        _account: &str,
         page: i32,
         page_size: i32,
     ) -> ERPResult<Vec<EmbryoInOutDto>>;
@@ -95,7 +95,7 @@ impl EmbryoRepositoryTrait for EmbryoRepository {
     async fn inout_list_of_embryo(
         &self,
         embryo_id: i32,
-        account: &str,
+        _account: &str,
         page: i32,
         page_size: i32,
     ) -> ERPResult<Vec<EmbryoInOutDto>> {

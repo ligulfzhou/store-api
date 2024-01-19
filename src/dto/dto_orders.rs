@@ -1,38 +1,39 @@
-use crate::dto::dto_account::AccountDto;
-use crate::dto::dto_customer::CustomerDto;
-use crate::dto::dto_items::ItemsDto;
-use crate::model::order::OrderModel;
-use chrono::NaiveDateTime;
+use crate::model::order::{OrderItemModel, OrderModel};
+use chrono::{NaiveDate, NaiveDateTime};
 use sqlx::FromRow;
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct OrderDto {
     pub id: i32,
+    pub order_no: String,
     pub account_id: i32,
-    pub account: AccountDto,
+    pub account: String,
     pub customer_id: i32,
-    pub customer: CustomerDto,
-    pub items: Vec<ItemsDto>,
+    pub customer: String,
+    pub create_time: NaiveDateTime,
+    pub order_date: NaiveDate,
+    pub delivery_date: NaiveDate,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct OrderItemDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub index: i32,
+    pub item_id: i32,
+    pub item_images: Vec<String>,
+    pub count: i32,
+    pub origin_price: i32,
+    pub price: i32,
+    pub total_price: i32,
+    pub discount: i32,
     pub create_time: NaiveDateTime,
 }
 
-impl OrderDto {
-    pub fn from(
-        order: OrderModel,
-        account: AccountDto,
-        customer: CustomerDto,
-        items: Vec<ItemsDto>,
-    ) -> Self {
-        Self {
-            id: order.id,
-            account_id: order.account_id,
-            account,
-            customer_id: order.customer_id,
-            customer,
-            items,
-            create_time: order.create_time,
-        }
-    }
+#[derive(Debug, Serialize)]
+pub struct OrderDetailDto {
+    pub order: OrderDto,
+    pub items: Vec<OrderItemDto>,
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -46,6 +47,11 @@ pub struct OrderInListDto {
     pub create_time: NaiveDateTime,
     pub total: i32,
     pub count: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OrderDetailQueryParams {
+    pub order_id: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -81,6 +87,7 @@ pub struct OrderItemsParams {
     // pub price: i32,
     // pub origin_price: i32,
     pub discount: i32,
+    pub discount_price: i32,
 }
 
 #[derive(Debug, Deserialize)]

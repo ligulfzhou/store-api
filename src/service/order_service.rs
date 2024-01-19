@@ -1,7 +1,7 @@
 use crate::config::database::{Database, DatabaseTrait};
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_orders::{
-    CreateOrderParams, OrderDto, OrderInListDto, OrderItemsParams, QueryParams,
+    CreateOrderParams, OrderDto, OrderInListDto, OrderItemDto, OrderItemsParams, QueryParams,
 };
 use crate::model::order::{OrderItemModel, OrderModel};
 use crate::ERPResult;
@@ -33,6 +33,7 @@ pub trait OrderServiceTrait {
     async fn get_order_list(&self, params: &QueryParams) -> ERPResult<Vec<OrderInListDto>>;
     async fn get_count_order_list(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn get_order(&self, order_id: i32) -> ERPResult<OrderDto>;
+    async fn get_order_items(&self, order_id: i32) -> ERPResult<Vec<OrderItemDto>>;
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -103,12 +104,13 @@ impl OrderServiceTrait for OrderService {
 
         query_builder.push_values(items, |mut b, item| {
             let origin_price = item_id_to_origin_price.get(&item.item_id).unwrap_or(&0);
-            let price = origin_price * item.discount / 100;
-            let total_price = item.count * origin_price * item.discount / 100;
+            // let price = origin_price * item.discount / 100;
+            // let total_price = item.count * origin_price * item.discount / 100;
+            let total_price = item.count * item.discount_price;
             b.push_bind(order_id)
                 .push_bind(item.item_id)
                 .push_bind(item.count)
-                .push_bind(price)
+                .push_bind(item.discount_price)
                 .push_bind(*origin_price)
                 .push_bind(item.discount)
                 .push_bind(total_price);
@@ -295,6 +297,37 @@ impl OrderServiceTrait for OrderService {
     }
 
     async fn get_order(&self, order_id: i32) -> ERPResult<OrderDto> {
-        todo!()
+        Ok(sqlx::query_as!(
+            OrderDto,
+            r#"
+            select 
+                o.*, 
+                a.name as account, 
+                c.name as customer
+            from orders o, accounts a, customers c 
+            where o.account_id = a.id and o.customer_id = c.id 
+                and o.id = $1;
+            "#,
+            order_id,
+        )
+        .fetch_one(self.db.get_pool())
+        .await?)
+    }
+
+    async fn get_order_items(&self, order_id: i32) -> ERPResult<Vec<OrderItemDto>> {
+        Ok(sqlx::query_as!(
+            OrderItemDto,
+            r#"
+            select 
+                oi.*,
+                i.images as item_images
+            from order_items oi, items i
+            where oi.item_id = i.id
+                and oi.order_id=$1
+            "#,
+            order_id
+        )
+        .fetch_all(self.db.get_pool())
+        .await?)
     }
 }

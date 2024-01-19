@@ -18,7 +18,6 @@ use axum_extra::extract::WithRejection;
 pub fn routes() -> Router<OrderState> {
     Router::new()
         .route("/api/orders/list", get(api_order_list))
-        .route("/api/order/items", get(api_order_list))
         .route("/api/orders/create", post(api_create_order))
         .route("/api/order/detail", get(api_order_detail))
 }
@@ -49,14 +48,6 @@ async fn api_order_list(
     tracing::info!("orders.count: {}", count);
 
     Ok(APIListResponse::new(orders, count))
-}
-
-async fn api_order_items(
-    State(state): State<OrderState>,
-    Extension(account): Extension<AccountDto>,
-    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
-) -> ERPResult<APIListResponse<OrderInListDto>> {
-    Ok(APIListResponse::new(vec![], 0))
 }
 
 #[derive(Serialize)]

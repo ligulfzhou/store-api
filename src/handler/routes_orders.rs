@@ -3,7 +3,7 @@ use crate::dto::dto_orders::{
     CreateOrderParams, DeleteOrderParams, OrderDetailDto, OrderDetailQueryParams, OrderInListDto,
     QueryParams,
 };
-use crate::response::api_response::{APIDataResponse, APIListResponse};
+use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::service::order_service::OrderServiceTrait;
 use crate::state::order_state::OrderState;
 use crate::{ERPError, ERPResult};
@@ -75,14 +75,18 @@ async fn api_order_delete(
     State(state): State<OrderState>,
     Extension(_): Extension<AccountDto>,
     WithRejection(Json(params), _): WithRejection<Json<DeleteOrderParams>, ERPError>,
-) -> ERPResult<APIDataResponse<OrderDetailDto>> {
-    let order = state.order_service.get_order(params.order_id).await?;
+) -> ERPResult<APIEmptyResponse> {
+    let order = state.order_service.get_order(params.id).await?;
+    match order.tp {
+        0 => {
+            // 正常订单
+            state.order_service.delete_order(params.id).await?;
+        }
+        _ => {
+            // 导入订单
+            state.order_service.delete_import_order(params.id).await?;
+        }
+    }
 
-    let order_dto = state.order_service.get_order(params.order_id).await?;
-    let order_items_dtos = state.order_service.get_order_items(params.order_id).await?;
-
-    Ok(APIDataResponse::new(OrderDetailDto {
-        order: order_dto,
-        items: order_items_dtos,
-    }))
+    Ok(APIEmptyResponse::new())
 }

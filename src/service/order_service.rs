@@ -7,7 +7,7 @@ use crate::model::order::{OrderItemModel, OrderModel};
 use crate::ERPResult;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, Postgres, QueryBuilder};
+use sqlx::{query, FromRow, Postgres, QueryBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -34,6 +34,8 @@ pub trait OrderServiceTrait {
     async fn get_count_order_list(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn get_order(&self, order_id: i32) -> ERPResult<OrderDto>;
     async fn get_order_items(&self, order_id: i32) -> ERPResult<Vec<OrderItemDto>>;
+    async fn delete_order(&self, order_id: i32) -> ERPResult<()>;
+    async fn delete_import_order(&self, order_id: i32) -> ERPResult<()>;
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -329,5 +331,45 @@ impl OrderServiceTrait for OrderService {
         )
         .fetch_all(self.db.get_pool())
         .await?)
+    }
+
+    async fn delete_order(&self, order_id: i32) -> ERPResult<()> {
+        sqlx::query!("delete from orders where id = $1", order_id)
+            .execute(self.db.get_pool())
+            .await?;
+        sqlx::query!("delete from order_items where order_id = $1", order_id)
+            .execute(self.db.get_pool())
+            .await?;
+        let res = sqlx::query!(
+            "select id from item_inout_bucket where order_id=$1",
+            order_id
+        )
+        .fetch_optional(self.db.get_pool())
+        .await?;
+        if res.is_some() {
+            let bucket_id = res.unwrap().id;
+
+            sqlx::query!("delete from item_inout_bucket where id = $1", bucket_id)
+                .execute(self.db.get_pool())
+                .await?;
+            sqlx::query!("delete from item_inout where bucket_id = $1", bucket_id)
+                .execute(self.db.get_pool())
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn delete_import_order(&self, order_id: i32) -> ERPResult<()> {
+        sqlx::query!("delete from orders where id = $1", order_id)
+            .execute(self.db.get_pool())
+            .await?;
+        sqlx::query!(
+            "delete from import_order_items where order_id = $1",
+            order_id
+        )
+        .execute(self.db.get_pool())
+        .await?;
+        Ok(())
     }
 }

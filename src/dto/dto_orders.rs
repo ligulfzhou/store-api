@@ -101,5 +101,5 @@ pub struct CreateOrderParams {
 
 #[derive(Debug, Deserialize)]
 pub struct DeleteOrderParams {
-    pub order_id: i32,
+    pub id: i32,
 }

@@ -20,9 +20,10 @@ use axum::extract::{Multipart, State};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
-use chrono::{Datelike, NaiveDateTime, Timelike, Utc};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use rand::Rng;
 use std::collections::HashMap;
+use std::default::Default;
 use std::fs;
 
 pub fn routes() -> Router<ExcelState> {
@@ -142,7 +143,8 @@ async fn process_order_excel(
         .map(|item| (item.id, item))
         .collect::<HashMap<i32, ItemsModel>>();
 
-    let order_create_time = NaiveDateTime::default();
+    // let order_create_time = NaiveDateTime::default();
+    let utc_create_time = DateTime::<Utc>::default();
     let order_id = state
         .order_service
         .add_order(&OrderModel {
@@ -153,7 +155,7 @@ async fn process_order_excel(
             customer_id,
             order_date: order_info.order_date,
             delivery_date: order_info.delivery_date,
-            create_time: order_create_time,
+            create_time: utc_create_time,
         })
         .await?;
 
@@ -167,7 +169,7 @@ async fn process_order_excel(
             in_true_out_false: false,
             via: "order_excel".to_string(),
             order_id,
-            create_time: order_create_time,
+            create_time: utc_create_time,
         })
         .await?
         .id;
@@ -217,7 +219,7 @@ async fn process_order_excel(
                 price: item.price,
                 total_price: item.total,
                 discount: 0,
-                create_time: order_create_time,
+                create_time: utc_create_time,
             }
         })
         .collect::<Vec<OrderItemModel>>();

@@ -6,7 +6,7 @@ use crate::dto::dto_orders::{
 use crate::model::order::{OrderItemModel, OrderModel};
 use crate::ERPResult;
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use sqlx::{FromRow, Postgres, QueryBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -43,7 +43,7 @@ pub struct TmpOrderInListDto {
     pub account: String,
     pub customer_id: i32,
     pub customer: String,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
 }
 
 #[async_trait]

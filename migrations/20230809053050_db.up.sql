@@ -2,11 +2,11 @@
 create table cates
 (
     id          serial,
-    index       integer   not null default 0,    -- 序号
-    name        text      not null default '',   -- 类名
-    cate_type   integer   not null default 0,    -- 大类小类， 0 大类， 1小类，再变大，则更小
-    parent_id   integer   not null default 0,    -- 父类
-    create_time TIMESTAMP not null default now() -- 创建时间
+    index       integer     not null default 0,    -- 序号
+    name        text        not null default '',   -- 类名
+    cate_type   integer     not null default 0,    -- 大类小类， 0 大类， 1小类，再变大，则更小
+    parent_id   integer     not null default 0,    -- 父类
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
 );
 
 -- test
@@ -23,15 +23,15 @@ create table cates
 create table customers
 (
     id          serial PRIMARY KEY,
-    name        text      not null default '',   -- 名称
-    head        text      not null default '',   -- 负责人
-    phone       text      not null default '',   -- 电话
-    birthday    date,                            -- 生日🎂
-    email       text      not null default '',   -- email
-    ty_pe       integer   not null default 1,    -- 客户类别 (1: 普通客户，2: VIP客户)
-    address     text      not null default '',   -- 地址
-    notes       text      not null default '',   -- 备注
-    create_time TIMESTAMP not null default now() -- 创建时间
+    name        text        not null default '',   -- 名称
+    head        text        not null default '',   -- 负责人
+    phone       text        not null default '',   -- 电话
+    birthday    date,                              -- 生日🎂
+    email       text        not null default '',   -- email
+    ty_pe       integer     not null default 1,    -- 客户类别 (1: 普通客户，2: VIP客户)
+    address     text        not null default '',   -- 地址
+    notes       text        not null default '',   -- 备注
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
 );
 create unique index uniq_customers_name on customers (name);
 create index idx_customers_type on customers (ty_pe);
@@ -48,19 +48,19 @@ values ('测试客户3', 2);
 create table items
 (
     id          serial PRIMARY KEY,
-    images      text[] not null default '{}',    -- 商品图片
-    name        text      not null default '',   -- 名称
-    size        text      not null default '',   -- 规格
-    color       text      not null default '',   -- 颜色
-    cate1_id    integer   not null default 0,    -- 大类ID
-    cate2_id    integer   not null default 0,    -- 小类ID
-    unit        text      not null default '',   -- 单位
-    price       integer   not null default 0,    -- 标准售价
-    cost        integer   not null default 0,    -- 成本
-    notes       text      not null default '',   -- 备注
-    number      text      not null default '',   -- 编号
-    barcode     text      not null default '',   -- 条码
-    create_time TIMESTAMP not null default now() -- 创建时间
+    images      text[] not null default '{}',      -- 商品图片
+    name        text        not null default '',   -- 名称
+    size        text        not null default '',   -- 规格
+    color       text        not null default '',   -- 颜色
+    cate1_id    integer     not null default 0,    -- 大类ID
+    cate2_id    integer     not null default 0,    -- 小类ID
+    unit        text        not null default '',   -- 单位
+    price       integer     not null default 0,    -- 标准售价
+    cost        integer     not null default 0,    -- 成本
+    notes       text        not null default '',   -- 备注
+    number      text        not null default '',   -- 编号
+    barcode     text        not null default '',   -- 条码
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
 );
 create index idx_items_number on items (number);
 create index idx_items_barcode on items (barcode);
@@ -70,11 +70,11 @@ create index idx_items_cates on items (cate1_id, cate2_id);
 create table item_inout_bucket
 (
     id                serial PRIMARY KEY,
-    account_id        integer   not null default 0,
-    in_true_out_false bool      not null default true,
-    via               text      not null default '', -- form / excel / order_excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
-    order_id          integer   not null default 0,
-    create_time       TIMESTAMP not null default now()
+    account_id        integer     not null default 0,
+    in_true_out_false bool        not null default true,
+    via               text        not null default '', -- form / excel / order_excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
+    order_id          integer     not null default 0,
+    create_time       TIMESTAMPTZ not null default now()
 );
 
 -- 产品出入库
@@ -93,24 +93,24 @@ create table item_inout
 create table embryos
 (
     id          serial PRIMARY KEY,
-    images      text[] not null default '{}',    -- 商品图片
-    name        text      not null default '',   -- 名称
-    color       text      not null default '',   -- 颜色
-    unit        text      not null default '',   -- 单位
-    number      text      not null default '',   -- 编号
-    cost        integer   not null default 0,    -- 成本
-    notes       text      not null default '',   -- 备注
-    create_time TIMESTAMP not null default now() -- 创建时间
+    images      text[] not null default '{}',      -- 商品图片
+    name        text        not null default '',   -- 名称
+    color       text        not null default '',   -- 颜色
+    unit        text        not null default '',   -- 单位
+    number      text        not null default '',   -- 编号
+    cost        integer     not null default 0,    -- 成本
+    notes       text        not null default '',   -- 备注
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
 );
 
 -- 库存胚 出入库
 create table embryo_inout_bucket
 (
     id                serial PRIMARY KEY,
-    account_id        integer   not null default 0,
-    in_true_out_false bool      not null default true,
-    via               text      not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
-    create_time       TIMESTAMP not null default now()
+    account_id        integer     not null default 0,
+    in_true_out_false bool        not null default true,
+    via               text        not null default '', -- form / excel / order:  手动操作 / 通过excel导入增加 / 订单确认出库之后
+    create_time       TIMESTAMPTZ not null default now()
 );
 create index idx_embryo_inout_bucket_inout_via_account_id on embryo_inout_bucket (in_true_out_false, via, account_id);
 
@@ -133,10 +133,10 @@ create index idx_embryo_inout_bucket_id on embryo_inout (bucket_id);
 create table accounts
 (
     id          serial PRIMARY KEY,
-    name        text      not null default '',
-    account     text      not null default '',
-    password    text      not null default '',
-    create_time TIMESTAMP not null default now() -- 创建时间
+    name        text        not null default '',
+    account     text        not null default '',
+    password    text        not null default '',
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
 );
 
 -- todo: test
@@ -147,33 +147,55 @@ values ('测试账号', 'test', 'test');
 create table orders
 (
     id            serial PRIMARY KEY,
-    account_id    integer   not null default 0,            -- 操作人
-    customer_id   integer   not null default 0,            --
-    order_no      text      not null default '',           --
-    order_date    DATE      not null default current_date, -- 订单日期
-    delivery_date DATE      not null default current_date, -- 交货日期
-    create_time   TIMESTAMP not null default now()         -- 创建时间
+    account_id    integer     not null default 0,            -- 操作人
+    customer_id   integer     not null default 0,            --
+    order_no      text        not null default '',           --
+    tp            integer     not null default 0,            -- 0: 正常订单, 1: 导入订单
+    order_date    DATE        not null default current_date, -- 订单日期
+    delivery_date DATE        not null default current_date, -- 交货日期
+    create_time   TIMESTAMPTZ not null default now()         -- 创建时间
 );
 create index idx_orders_order_date on orders (order_date);
 create index idx_orders_delivery_date on orders (delivery_date);
 -- create index idx_orders_order_no on orders (order_no);
 
+
+alter table orders alter column create_time type timestamptz using create_time at time zone 'UTC';
+
 -- 订单商品
 create table order_items
 (
     id           serial PRIMARY KEY,
-    order_id     integer   not null default 0,
-    index        integer   not null default 0,
-    item_id      integer   not null default 0,
-    count        integer   not null default 0,
-    origin_price integer   not null default 0,
-    price        integer   not null default 0,
-    total_price  integer   not null default 0,
-    discount     integer   not null default 100,
-    create_time  TIMESTAMP not null default now() -- 创建时间
+    order_id     integer     not null default 0,
+    index        integer     not null default 0,
+    item_id      integer     not null default 0,
+    count        integer     not null default 0,
+    origin_price integer     not null default 0,
+    price        integer     not null default 0,
+    total_price  integer     not null default 0,
+    discount     integer     not null default 100,
+    create_time  TIMESTAMPTZ not null default now() -- 创建时间
 );
 create index idx_order_items_order_id on order_items (order_id);
 create index idx_order_items_item_id on order_items (item_id);
+
+create table import_order_items
+(
+    id          serial PRIMARY KEY,
+    index       integer     not null default 0,
+    order_id    integer     not null default 0,
+    number      text        not null default '',
+    images      text[] not null default '{}',
+    size        text        not null default '',
+    name        text        not null default '',
+    color       text        not null default '',
+    count       integer     not null default 0,
+    unit        text        not null default '',
+    price       integer     not null default 0,
+    total_price integer     not null default 0,
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
+);
+create index idx_import_order_items_order_id on order_items (order_id);
 
 -- 配置信息
 create table global_settings
@@ -190,9 +212,9 @@ values (ARRAY['个', '串', '只', '支'], ARRAY['现金', '支付宝', '微信'
 create table color_settings
 (
     id          serial PRIMARY KEY,
-    color       text      not null default '',
-    value       integer   not null default 0,
-    create_time TIMESTAMP not null default now() -- 创建时间
+    color       text        not null default '',
+    value       integer     not null default 0,
+    create_time TIMESTAMPTZ not null default now() -- 创建时间
 );
 create unique index uniq_color_setting_color on color_settings (color);
 insert into color_settings(color, value)
@@ -205,8 +227,8 @@ values ('钢色', 3);
 create table customer_types
 (
     id          serial PRIMARY KEY,
-    ty_pe       text      not null default '',
-    create_time timestamp not null default now()
+    ty_pe       text        not null default '',
+    create_time TIMESTAMPTZ not null default now()
 );
 create unique index uniq_customer_types_type on customer_types (ty_pe);
 insert into customer_types (ty_pe)

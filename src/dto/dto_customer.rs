@@ -1,6 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::model::customer::CustomerModel;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::FromRow;
 use std::ops::Deref;
 
@@ -16,7 +16,7 @@ pub struct CustomerDto {
     pub birthday: Option<NaiveDate>,
     pub phone: String,
     pub notes: String,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
 }
 
 impl CustomerDto {

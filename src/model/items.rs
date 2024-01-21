@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
 /* 图片（可多张）, 名称, 规格, 颜色, 类别（大类+小类）,单位, 售价, 成本, 备注（可空）, 编号（6位数字，688001，688002...)*/
@@ -17,7 +17,7 @@ pub struct ItemsModel {
     pub notes: String,              // 备注
     pub number: String,             // 货号
     pub barcode: String,            // 条码
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 }
 
 #[derive(Debug, Serialize, Clone, FromRow)]
@@ -27,7 +27,7 @@ pub struct ItemInOutBucketModal {
     pub in_true_out_false: bool,    // 增加还是减少
     pub via: String,                // 规格
     pub order_id: i32,              // 颜色
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, FromRow)]

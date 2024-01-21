@@ -1,5 +1,5 @@
 use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoModel};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
 /// model => dto
@@ -12,7 +12,7 @@ pub struct EmbryoDto {
     pub unit: String,
     pub notes: String,
     pub number: String,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
     pub count: i32,
 }
 
@@ -48,7 +48,7 @@ pub struct EmbryoInOutDto {
     pub account: String,            // 经手账号 名
     pub in_true_out_false: bool,    // 增加还是减少
     pub via: String,                // 规格
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
@@ -58,7 +58,7 @@ pub struct EmbryoInOutBucketDto {
     pub account: String,            // 经手账号 名
     pub in_true_out_false: bool,    // 增加还是减少
     pub via: String,                // 规格
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 
     pub total_count: i32,
     pub total_sum: i32,

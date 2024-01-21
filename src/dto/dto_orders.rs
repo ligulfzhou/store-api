@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::FromRow;
 
 #[derive(Debug, Serialize, FromRow)]
@@ -10,7 +10,7 @@ pub struct OrderDto {
     pub account: String,
     pub customer_id: i32,
     pub customer: String,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
     pub order_date: NaiveDate,
     pub delivery_date: NaiveDate,
 }
@@ -27,7 +27,7 @@ pub struct OrderItemDto {
     pub price: i32,
     pub total_price: i32,
     pub discount: i32,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,7 +44,7 @@ pub struct OrderInListDto {
     pub customer_id: i32,
     pub customer: String,
     pub item_images: Vec<String>,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
     pub total: i32,
     pub count: i32,
 }

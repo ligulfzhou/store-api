@@ -1,7 +1,7 @@
 use crate::dto::dto_embryo::EmbryoDto;
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemInOutBucketModal, ItemsModel};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct ItemsDto {
@@ -21,7 +21,7 @@ pub struct ItemsDto {
     pub number: String,             // 货号
     pub barcode: String,            // 条码
     pub count: i32,                 // 库存数
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
     pub embryo: Option<EmbryoDto>,
 }
 
@@ -63,7 +63,7 @@ pub struct ItemInOutBucketDto {
     pub account: String,            // 经手账号 名
     pub in_true_out_false: bool,    // 增加还是减少
     pub via: String,                // 规格
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 
     pub total_count: i32,
     pub total_sum: i32,
@@ -102,7 +102,7 @@ pub struct SingleItemInOutDto {
     pub count: i32,                 // 数量
     pub in_true_out_false: bool,    // 增加还是减少
     pub via: String,                // 规格
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
     pub item: Option<ItemsModel>,
 }
 
@@ -124,7 +124,7 @@ pub struct ItemInOutDto {
     pub in_true_out_false: bool, // 增加还是减少
     pub via: String,             // 规格
     pub order_id: i32,
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 }
 
 #[derive(Debug, Deserialize)]

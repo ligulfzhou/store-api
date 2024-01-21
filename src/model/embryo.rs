@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
@@ -11,7 +11,7 @@ pub struct EmbryoModel {
     pub notes: String,
     pub cost: i32,
     pub number: String,
-    pub create_time: NaiveDateTime,
+    pub create_time: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Clone, FromRow)]
@@ -20,7 +20,7 @@ pub struct EmbryoInOutBucketModal {
     pub account_id: i32,            // 商品图片
     pub in_true_out_false: bool,    // 增加还是减少
     pub via: String,                // 规格
-    pub create_time: NaiveDateTime, // 创建时间
+    pub create_time: DateTime<Utc>, // 创建时间
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, FromRow)]

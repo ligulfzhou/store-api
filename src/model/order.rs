@@ -4,6 +4,7 @@ use chrono::{NaiveDate, NaiveDateTime};
 pub struct OrderModel {
     pub id: i32,
     pub order_no: String,
+    pub tp: i32,
     pub account_id: i32,
     pub customer_id: i32,
     pub order_date: NaiveDate,

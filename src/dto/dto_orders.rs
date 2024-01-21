@@ -5,6 +5,7 @@ use sqlx::FromRow;
 pub struct OrderDto {
     pub id: i32,
     pub order_no: String,
+    pub tp: i32,
     pub account_id: i32,
     pub account: String,
     pub customer_id: i32,
@@ -96,4 +97,9 @@ pub struct CreateOrderParams {
     pub items: Vec<OrderItemsParams>,
     // pub order_date: String,
     // pub delivery_date: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeleteOrderParams {
+    pub order_id: i32,
 }

@@ -149,6 +149,7 @@ async fn process_order_excel(
             id: 0,
             order_no: "".to_string(),
             account_id: account.id,
+            tp: 1,
             customer_id,
             order_date: order_info.order_date,
             delivery_date: order_info.delivery_date,

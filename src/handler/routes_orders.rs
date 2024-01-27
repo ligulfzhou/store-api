@@ -18,6 +18,7 @@ use axum_extra::extract::WithRejection;
 pub fn routes() -> Router<OrderState> {
     Router::new()
         .route("/api/orders/list", get(api_order_list))
+        .route("/api/imported/orders/list", get(api_imported_order_list))
         .route("/api/orders/create", post(api_create_order))
         .route("/api/order/detail", get(api_order_detail))
         .route("/api/order/delete", post(api_order_delete))
@@ -46,6 +47,23 @@ async fn api_order_list(
     let orders = state.order_service.get_order_list(&params).await?;
     tracing::info!("orders.len: {}", orders.len());
     let count = state.order_service.get_count_order_list(&params).await?;
+    tracing::info!("orders.count: {}", count);
+
+    Ok(APIListResponse::new(orders, count))
+}
+
+async fn api_imported_order_list(
+    State(state): State<OrderState>,
+    Extension(_account): Extension<AccountDto>,
+    WithRejection(Query(params), _): WithRejection<Query<QueryParams>, ERPError>,
+) -> ERPResult<APIListResponse<OrderInListDto>> {
+    tracing::info!("api_order_list...");
+    let orders = state.order_service.get_imported_order_list(&params).await?;
+    tracing::info!("orders.len: {}", orders.len());
+    let count = state
+        .order_service
+        .get_count_imported_order_list(&params)
+        .await?;
     tracing::info!("orders.count: {}", count);
 
     Ok(APIListResponse::new(orders, count))

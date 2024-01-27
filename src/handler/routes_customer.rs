@@ -1,6 +1,7 @@
 use crate::dto::dto_customer::{
     CustomerDeleteParam, CustomerDto, CustomerEditParam, CustomerSearchParam,
 };
+use crate::model::customer::CustomerModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::service::customer_service::CustomerServiceTrait;
 use crate::service::settings_service::SettingsServiceTrait;
@@ -15,8 +16,34 @@ use std::collections::HashMap;
 pub fn routes() -> Router<CustomerState> {
     Router::new()
         .route("/api/customers", get(get_customers))
+        .route("/api/customers/all", get(get_all_customers))
         .route("/api/customer/delete", get(delete_customer))
         .route("/api/customer/edit", post(edit_customer))
+}
+
+async fn get_all_customers(
+    State(state): State<CustomerState>,
+) -> ERPResult<APIListResponse<CustomerDto>> {
+    let customers = state.customer_service.get_all_customers().await?;
+    let id_to_type = state
+        .settings_service
+        .get_customer_types()
+        .await?
+        .into_iter()
+        .map(|item| (item.id, item.ty_pe))
+        .collect::<HashMap<i32, String>>();
+
+    let binding = "".to_string();
+    let customer_dtos = customers
+        .into_iter()
+        .map(|item| {
+            let customer_type = id_to_type.get(&item.ty_pe).unwrap_or(&binding);
+            CustomerDto::from(item, customer_type)
+        })
+        .collect::<Vec<_>>();
+
+    let count = customer_dtos.len() as i32;
+    Ok(APIListResponse::new(customer_dtos, count))
 }
 
 async fn get_customers(

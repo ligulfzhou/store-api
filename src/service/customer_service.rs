@@ -15,11 +15,9 @@ pub trait CustomerServiceTrait {
     fn new(db: &Arc<Database>) -> Self;
     async fn get_customer_with_id(&self, customer_id: i32) -> ERPResult<CustomerDto>;
     async fn get_customers(&self, param: &CustomerSearchParam) -> ERPResult<Vec<CustomerModel>>;
-
+    async fn get_all_customers(&self) -> ERPResult<Vec<CustomerModel>>;
     async fn get_customers_count(&self, param: &CustomerSearchParam) -> ERPResult<i32>;
-
     async fn edit_customer(&self, param: &CustomerEditParam) -> ERPResult<()>;
-
     async fn delete_customer(&self, id: i32) -> ERPResult<()>;
 }
 
@@ -52,6 +50,14 @@ impl CustomerServiceTrait for CustomerService {
             .await?;
 
         Ok(customers)
+    }
+
+    async fn get_all_customers(&self) -> ERPResult<Vec<CustomerModel>> {
+        Ok(
+            sqlx::query_as!(CustomerModel, "select * from customers order by name;")
+                .fetch_all(self.db.get_pool())
+                .await?,
+        )
     }
 
     async fn get_customers_count(&self, param: &CustomerSearchParam) -> ERPResult<i32> {

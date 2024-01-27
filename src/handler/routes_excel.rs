@@ -134,7 +134,7 @@ async fn process_order_excel(
     tracing::info!("{:?}", order_info);
     tracing::info!("{:?}", items);
 
-    let utc_create_time = chrono::offset::Utc::now();
+    let utc_create_time = Utc::now();
     let order_id = state
         .order_service
         .add_order(&OrderModel {
@@ -205,7 +205,7 @@ async fn process_legacy_order_excel(
         .collect::<HashMap<i32, ItemsModel>>();
 
     // let order_create_time = NaiveDateTime::default();
-    let utc_create_time = chrono::offset::Utc::now();
+    let utc_create_time = Utc::now();
     let order_id = state
         .order_service
         .add_order(&OrderModel {

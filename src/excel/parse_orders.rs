@@ -54,13 +54,13 @@ pub async fn parse_order_info(file_path: &str) -> ERPResult<OrderInfo> {
             continue;
         }
 
-        if cell_value.contains("订单日期") {
+        if cell_value.contains("订单") {
             let naive_order_date = parse_date_with_regex(&cell_value)
                 .ok_or(ERPError::ExcelError("出货日期未找到".to_string()))?;
-            order_info.delivery_date = naive_order_date;
+            order_info.order_date = naive_order_date;
         }
 
-        if cell_value.contains("出货日期") {
+        if cell_value.contains("出货") {
             let naive_order_date = parse_date_with_regex(&cell_value)
                 .ok_or(ERPError::ExcelError("出货日期未找到".to_string()))?;
             order_info.delivery_date = naive_order_date;

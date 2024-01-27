@@ -3,7 +3,7 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_orders::{
     CreateOrderParams, OrderDto, OrderInListDto, OrderItemDto, OrderItemsParams, QueryParams,
 };
-use crate::model::order::{OrderItemModel, OrderModel};
+use crate::model::order::{ImportedOrderItemModel, OrderItemModel, OrderModel};
 use crate::ERPResult;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -30,6 +30,10 @@ pub trait OrderServiceTrait {
         &self,
         items: &[OrderItemModel],
     ) -> ERPResult<Vec<OrderItemModel>>;
+    async fn insert_just_imported_order_items(
+        &self,
+        items: &[ImportedOrderItemModel],
+    ) -> ERPResult<Vec<ImportedOrderItemModel>>;
     async fn get_order_list(&self, params: &QueryParams) -> ERPResult<Vec<OrderInListDto>>;
     async fn get_count_order_list(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn get_order(&self, order_id: i32) -> ERPResult<OrderDto>;
@@ -71,13 +75,14 @@ impl OrderServiceTrait for OrderService {
     async fn add_order(&self, order: &OrderModel) -> ERPResult<i32> {
         let order = sqlx::query!(
             r#"
-            insert into orders(account_id, customer_id, order_date, delivery_date)
-            values ($1, $2, $3, $4) 
+            insert into orders(account_id, customer_id, order_date, tp, delivery_date)
+            values ($1, $2, $3, $4, $5) 
             returning *;
             "#,
             order.account_id,
             order.customer_id,
             order.order_date,
+            order.tp,
             order.delivery_date
         )
         .fetch_one(self.db.get_pool())
@@ -148,6 +153,37 @@ impl OrderServiceTrait for OrderService {
 
         let res = query_builder
             .build_query_as::<OrderItemModel>()
+            .fetch_all(self.db.get_pool())
+            .await?;
+
+        Ok(res)
+    }
+
+    async fn insert_just_imported_order_items(
+        &self,
+        items: &[ImportedOrderItemModel],
+    ) -> ERPResult<Vec<ImportedOrderItemModel>> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "insert into import_order_items (order_id, number, images, size, name, color, count, unit, price, total_price, create_time) ",
+        );
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(item.order_id)
+                .push_bind(item.number.clone())
+                .push_bind(item.images.clone())
+                .push_bind(item.size.clone())
+                .push_bind(item.name.clone())
+                .push_bind(item.color.clone())
+                .push_bind(item.count)
+                .push_bind(item.unit.clone())
+                .push_bind(item.price)
+                .push_bind(item.total_price)
+                .push_bind(item.create_time);
+        });
+        query_builder.push(" returning *;");
+
+        let res = query_builder
+            .build_query_as::<ImportedOrderItemModel>()
             .fetch_all(self.db.get_pool())
             .await?;
 

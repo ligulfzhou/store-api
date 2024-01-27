@@ -236,3 +236,4 @@ values ('普通客户');
 insert into customer_types (ty_pe)
 values ('VIP客户');
 
+--// ALTER TABLE a_table ALTER COLUMN ts_column TYPE TIMESTAMP WITH TIME ZONE USING ts_column AT TIME ZONE 'UTC'

@@ -15,7 +15,7 @@ lazy_static! {
         (6, "颜色"),
         (7, "数量"),
         (8, "单位"),
-        (9, "售价"),
+        (9, "单价"),
         (10, "金额"),
         (11, "备注")
     ]
@@ -30,7 +30,7 @@ pub struct OrderInfo {
     pub delivery_date: NaiveDate,
 }
 
-pub async fn parse_order_info(file_path: &str) -> ERPResult<OrderInfo> {
+pub async fn parse_legacy_order_info(file_path: &str) -> ERPResult<OrderInfo> {
     let mut order_info = OrderInfo::default();
 
     tracing::info!("file_path: {file_path}");
@@ -70,7 +70,7 @@ pub async fn parse_order_info(file_path: &str) -> ERPResult<OrderInfo> {
     Ok(order_info)
 }
 
-pub async fn parse_orders(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
+pub async fn parse_legacy_order(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
     tracing::info!("file_path: {file_path}");
     let path = std::path::Path::new(file_path);
     let sheets = reader::xlsx::read(path).unwrap();
@@ -111,7 +111,7 @@ pub async fn parse_orders(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
                 7 => cur.count = (cell_value.parse::<f32>().unwrap_or(0.0) * 10.0) as i32,
                 9 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 10 => cur.total = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
-                15 => cur.notes = cell_value.trim().to_string(),
+                11 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
         }

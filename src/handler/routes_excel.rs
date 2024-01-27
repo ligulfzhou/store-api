@@ -3,11 +3,12 @@ use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_excel::{EmbryoExcelDto, ItemExcelDto, OrderExcelDto};
 use crate::excel::parse_embryo::parse_embryos;
 use crate::excel::parse_items::parse_items;
-use crate::excel::parse_orders::{parse_order_info, parse_orders};
+use crate::excel::parse_legacy_orders::{parse_legacy_order, parse_legacy_order_info};
+use crate::excel::parse_orders::{parse_order, parse_order_info};
 use crate::model::cates::CateModel;
 use crate::model::embryo::{EmbryoInOutBucketModal, EmbryoInOutModel};
 use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
-use crate::model::order::{OrderItemModel, OrderModel};
+use crate::model::order::{ImportedOrderItemModel, OrderItemModel, OrderModel};
 use crate::response::api_response::APIEmptyResponse;
 use crate::service::cates_service::CateServiceTrait;
 use crate::service::embryo_service::EmbryoServiceTrait;
@@ -20,7 +21,7 @@ use axum::extract::{Multipart, State};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
-use chrono::{DateTime, Datelike, Timelike, Utc};
+use chrono::{Datelike, Timelike, Utc};
 use rand::Rng;
 use std::collections::HashMap;
 use std::default::Default;
@@ -109,6 +110,10 @@ async fn import_excel(
         0 => process_item_excel(&state, &file_path, color_to_value, &account).await?,
         1 => process_embryo_excel(&state, &file_path, color_to_value, &account).await?,
         3 => process_order_excel(&state, &file_path, color_to_value, customer_id, &account).await?,
+        4 => {
+            process_legacy_order_excel(&state, &file_path, color_to_value, customer_id, &account)
+                .await?
+        }
         _ => process_item_excel(&state, &file_path, color_to_value, &account).await?,
     }
 
@@ -124,12 +129,68 @@ async fn process_order_excel(
 ) -> ERPResult<()> {
     tracing::info!("import excel for order....");
     let order_info = parse_order_info(file_path).await?;
-    let items = parse_orders(file_path).await?;
+    let items = parse_order(file_path).await?;
 
     tracing::info!("{:?}", order_info);
     tracing::info!("{:?}", items);
 
-    let item_ids = check_order_data_valid(state, &items).await?;
+    let utc_create_time = chrono::offset::Utc::now();
+    let order_id = state
+        .order_service
+        .add_order(&OrderModel {
+            id: 0,
+            order_no: "".to_string(),
+            account_id: account.id,
+            tp: 1,
+            customer_id,
+            order_date: order_info.order_date,
+            delivery_date: order_info.delivery_date,
+            create_time: utc_create_time,
+        })
+        .await?;
+
+    let order_items = items
+        .into_iter()
+        .map(|item| ImportedOrderItemModel {
+            id: 0,
+            order_id,
+            number: item.number,
+            images: item.images,
+            size: item.size,
+            name: item.name,
+            index: item.index,
+            count: item.count,
+            price: item.price,
+            total_price: item.total,
+            create_time: utc_create_time,
+            color: item.color,
+            unit: item.unit,
+        })
+        .collect::<Vec<ImportedOrderItemModel>>();
+
+    state
+        .order_service
+        .insert_just_imported_order_items(&order_items)
+        .await?;
+
+    Ok(())
+}
+
+async fn process_legacy_order_excel(
+    state: &ExcelState,
+    file_path: &str,
+    _color_to_value: HashMap<String, i32>,
+    customer_id: i32,
+    account: &AccountDto,
+) -> ERPResult<()> {
+    tracing::info!("import excel for order....");
+    let order_info = parse_legacy_order_info(file_path).await?;
+    let items = parse_legacy_order(file_path).await?;
+
+    tracing::info!("{:?}", order_info);
+    tracing::info!("{:?}", items);
+
+    let item_ids = check_legacy_order_data_valid(state, &items).await?;
     let item_models = state.item_service.get_item_with_ids(item_ids).await?;
     let mut number_to_color_to_id = HashMap::new();
     item_models.iter().for_each(|item| {
@@ -144,7 +205,7 @@ async fn process_order_excel(
         .collect::<HashMap<i32, ItemsModel>>();
 
     // let order_create_time = NaiveDateTime::default();
-    let utc_create_time = DateTime::<Utc>::default();
+    let utc_create_time = chrono::offset::Utc::now();
     let order_id = state
         .order_service
         .add_order(&OrderModel {
@@ -232,7 +293,7 @@ async fn process_order_excel(
     Ok(())
 }
 
-async fn check_order_data_valid(
+async fn check_legacy_order_data_valid(
     state: &ExcelState,
     excel_items: &[OrderExcelDto],
 ) -> ERPResult<Vec<i32>> {

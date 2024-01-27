@@ -25,3 +25,20 @@ pub struct OrderItemModel {
     pub discount: i32,
     pub create_time: DateTime<Utc>,
 }
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct ImportedOrderItemModel {
+    pub id: i32,
+    pub index: i32,
+    pub order_id: i32,
+    pub number: String,
+    pub images: Vec<String>,
+    pub size: String,
+    pub name: String,
+    pub color: String,
+    pub count: i32,
+    pub unit: String,
+    pub price: i32,
+    pub total_price: i32,
+    pub create_time: DateTime<Utc>,
+}

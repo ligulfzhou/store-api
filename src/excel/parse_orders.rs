@@ -15,13 +15,13 @@ lazy_static! {
         (6, "颜色"),
         (7, "数量"),
         (8, "单位"),
-        (9, "单价"),
+        (9, "售价"),
         (10, "金额"),
         (11, "备注")
     ]
     .into_iter()
     .collect();
-    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![7, 9, 10];
+    pub static ref NONE_NULLABLE_JS: Vec<i32> = vec![2, 4, 5, 6, 7, 8, 9, 10];
 }
 
 #[derive(Debug, Default)]
@@ -70,7 +70,7 @@ pub async fn parse_order_info(file_path: &str) -> ERPResult<OrderInfo> {
     Ok(order_info)
 }
 
-pub async fn parse_orders(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
+pub async fn parse_order(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
     tracing::info!("file_path: {file_path}");
     let path = std::path::Path::new(file_path);
     let sheets = reader::xlsx::read(path).unwrap();
@@ -107,16 +107,19 @@ pub async fn parse_orders(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
             match j {
                 1 => cur.index = cell_value.trim().parse::<i32>().unwrap_or(0),
                 2 => cur.number = cell_value.trim().to_string(),
+                4 => cur.size = cell_value.trim().to_string(),
+                5 => cur.name = cell_value.trim().to_string(),
                 6 => cur.color = cell_value.trim().to_string().to_ascii_uppercase(),
                 7 => cur.count = (cell_value.parse::<f32>().unwrap_or(0.0) * 10.0) as i32,
+                8 => cur.unit = cell_value.trim().to_string(),
                 9 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 10 => cur.total = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
-                15 => cur.notes = cell_value.trim().to_string(),
+                11 => cur.notes = cell_value.trim().to_string(),
                 _ => {}
             }
         }
 
-        if cur.color.is_empty() || cur.number.is_empty() {
+        if cur.count == 0 || cur.price == 0 {
             break;
         }
 

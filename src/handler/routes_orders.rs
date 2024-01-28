@@ -1,7 +1,7 @@
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_orders::{
-    CreateOrderParams, DeleteOrderParams, OrderDetailDto, OrderDetailQueryParams, OrderInListDto,
-    QueryParams,
+    CreateOrderParams, DeleteOrderParams, ImportedOrderDetailDto, OrderDetailDto,
+    OrderDetailQueryParams, OrderInListDto, QueryParams,
 };
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::service::order_service::OrderServiceTrait;
@@ -21,6 +21,7 @@ pub fn routes() -> Router<OrderState> {
         .route("/api/imported/orders/list", get(api_imported_order_list))
         .route("/api/orders/create", post(api_create_order))
         .route("/api/order/detail", get(api_order_detail))
+        .route("/api/imported/order/detail", get(api_imported_order_detail))
         .route("/api/order/delete", post(api_order_delete))
 }
 
@@ -33,6 +34,23 @@ async fn api_order_detail(
     let order_items_dtos = state.order_service.get_order_items(params.order_id).await?;
 
     Ok(APIDataResponse::new(OrderDetailDto {
+        order: order_dto,
+        items: order_items_dtos,
+    }))
+}
+
+async fn api_imported_order_detail(
+    State(state): State<OrderState>,
+    Extension(_): Extension<AccountDto>,
+    WithRejection(Query(params), _): WithRejection<Query<OrderDetailQueryParams>, ERPError>,
+) -> ERPResult<APIDataResponse<ImportedOrderDetailDto>> {
+    let order_dto = state.order_service.get_order(params.order_id).await?;
+    let order_items_dtos = state
+        .order_service
+        .get_imported_order_items(params.order_id)
+        .await?;
+
+    Ok(APIDataResponse::new(ImportedOrderDetailDto {
         order: order_dto,
         items: order_items_dtos,
     }))

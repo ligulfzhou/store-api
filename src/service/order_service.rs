@@ -41,6 +41,10 @@ pub trait OrderServiceTrait {
     async fn get_count_imported_order_list(&self, params: &QueryParams) -> ERPResult<i32>;
     async fn get_order(&self, order_id: i32) -> ERPResult<OrderDto>;
     async fn get_order_items(&self, order_id: i32) -> ERPResult<Vec<OrderItemDto>>;
+    async fn get_imported_order_items(
+        &self,
+        order_id: i32,
+    ) -> ERPResult<Vec<ImportedOrderItemModel>>;
     async fn delete_order(&self, order_id: i32) -> ERPResult<()>;
     async fn delete_import_order(&self, order_id: i32) -> ERPResult<()>;
 }
@@ -514,11 +518,24 @@ impl OrderServiceTrait for OrderService {
             r#"
             select 
                 oi.*,
-                i.images as item_images
+                i.images as images
             from order_items oi, items i
             where oi.item_id = i.id
                 and oi.order_id=$1
             "#,
+            order_id
+        )
+        .fetch_all(self.db.get_pool())
+        .await?)
+    }
+
+    async fn get_imported_order_items(
+        &self,
+        order_id: i32,
+    ) -> ERPResult<Vec<ImportedOrderItemModel>> {
+        Ok(sqlx::query_as!(
+            ImportedOrderItemModel,
+            "select * from import_order_items where order_id = $1 order by id",
             order_id
         )
         .fetch_all(self.db.get_pool())

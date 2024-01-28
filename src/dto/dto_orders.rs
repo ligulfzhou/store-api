@@ -1,3 +1,4 @@
+use crate::model::order::ImportedOrderItemModel;
 use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::FromRow;
 
@@ -21,7 +22,7 @@ pub struct OrderItemDto {
     pub order_id: i32,
     pub index: i32,
     pub item_id: i32,
-    pub item_images: Vec<String>,
+    pub images: Vec<String>,
     pub count: i32,
     pub origin_price: i32,
     pub price: i32,
@@ -34,6 +35,12 @@ pub struct OrderItemDto {
 pub struct OrderDetailDto {
     pub order: OrderDto,
     pub items: Vec<OrderItemDto>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ImportedOrderDetailDto {
+    pub order: OrderDto,
+    pub items: Vec<ImportedOrderItemModel>,
 }
 
 #[derive(Debug, Serialize, FromRow)]

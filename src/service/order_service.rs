@@ -122,7 +122,7 @@ impl OrderServiceTrait for OrderService {
             let origin_price = item_id_to_origin_price.get(&item.item_id).unwrap_or(&0);
             // let price = origin_price * item.discount / 100;
             // let total_price = item.count * origin_price * item.discount / 100;
-            let total_price = item.count * item.discount_price;
+            let total_price = item.count * item.discount_price / 10;
             b.push_bind(order_id)
                 .push_bind(item.item_id)
                 .push_bind(item.count)
@@ -518,7 +518,7 @@ impl OrderServiceTrait for OrderService {
             r#"
             select 
                 oi.*,
-                i.images as images
+                i.images, i.size, i.number, i.name, i.color
             from order_items oi, items i
             where oi.item_id = i.id
                 and oi.order_id=$1

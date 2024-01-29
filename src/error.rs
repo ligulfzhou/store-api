@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use sqlx::error::Error as SqlxError;
+use std::io::Error as IOError;
 use thiserror::Error;
 
 pub type ERPResult<T> = Result<T, ERPError>;
@@ -22,6 +23,9 @@ pub enum ERPError {
 
     #[error("账号不存在")]
     AccountNotFound,
+
+    #[error("IOError: {:?}", .0)]
+    IOError(#[from] IOError),
 
     #[error("无权限: {}", .0)]
     NoPermission(String),

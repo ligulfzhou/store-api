@@ -1,5 +1,9 @@
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime, Utc};
 use regex::Regex;
+
+pub fn get_cur_date_str() -> String {
+    Utc::now().format("%Y-%m-%d-%H-%M-%S").to_string()
+}
 
 pub fn parse_date(date: &str) -> Option<NaiveDate> {
     match NaiveDate::parse_from_str(date, "%Y-%m-%d") {

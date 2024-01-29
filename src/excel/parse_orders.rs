@@ -1,8 +1,11 @@
-use crate::common::datetime::parse_date_with_regex;
+use crate::common::datetime::{get_cur_date_str, parse_date_with_regex};
+use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::dto::dto_excel::OrderExcelDto;
 use crate::{ERPError, ERPResult};
 use chrono::NaiveDate;
 use std::collections::HashMap;
+use std::fs;
+use tracing_subscriber::fmt::format;
 use umya_spreadsheet::*;
 
 lazy_static! {
@@ -83,6 +86,9 @@ pub async fn parse_order(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
     let mut items = vec![];
     let mut pre: Option<OrderExcelDto> = None;
 
+    let now_str = get_cur_date_str();
+
+    let mut index_to_images: HashMap<i32, Vec<String>> = HashMap::new();
     // // 从第4行开始
     for i in 4..rows + 1 {
         print!("row: {}", i);
@@ -93,7 +99,13 @@ pub async fn parse_order(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
             cur.number = previous.number;
         }
 
+        let mut images: Vec<&Image> = vec![];
         for j in 1..cols + 1 {
+            if j == 3 {
+                images = items_sheet.get_images((j, i));
+                tracing::info!("images: {:?}", images.len());
+                continue;
+            }
             let cell = items_sheet.get_cell((j, i));
             if cell.is_none() {
                 continue;
@@ -119,6 +131,20 @@ pub async fn parse_order(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
             }
         }
 
+        let mut image_urls = vec![];
+        if !images.is_empty() {
+            for (_, real_goods_image) in images.into_iter().enumerate() {
+                let image_name = format!("{}/{}-{}.png", &now_str, cur.index, cur.number);
+                let image_path = format!("{}/order/{}", STORAGE_FILE_PATH, image_name);
+                fs::create_dir_all(format!("{}/order/{}", STORAGE_FILE_PATH, &now_str))?;
+                real_goods_image.download_image(&image_path);
+                image_urls.push(format!("{}/order/{}", STORAGE_URL_PREFIX, image_name));
+            }
+        }
+        if !image_urls.is_empty() {
+            index_to_images.insert(cur.index, image_urls);
+        }
+
         if cur.count == 0 || cur.price == 0 {
             break;
         }
@@ -142,6 +168,15 @@ pub async fn parse_order(file_path: &str) -> ERPResult<Vec<OrderExcelDto>> {
                 name
             )));
         }
+    }
+
+    // insert images to items
+    let empty_image_urls: Vec<String> = vec![];
+    for item in items.iter_mut() {
+        let image_urls = index_to_images
+            .get(&item.index)
+            .unwrap_or(&empty_image_urls);
+        item.images = image_urls.clone();
     }
 
     Ok(items)

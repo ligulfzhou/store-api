@@ -8,7 +8,9 @@ use crate::dto::dto_items::{
 };
 use crate::model::embryo::EmbryoModel;
 use crate::model::items::{ItemInOutBucketModal, ItemsInOutModel, ItemsModel};
+use crate::model::order::OrderItemModel;
 use crate::repository::embryo_repository::{EmbryoRepository, EmbryoRepositoryTrait};
+use crate::ERPError::Failed;
 use crate::{ERPError, ERPResult};
 use async_trait::async_trait;
 use sqlx::{Postgres, QueryBuilder};
@@ -285,6 +287,40 @@ impl ItemServiceTrait for ItemService {
     }
 
     async fn delete_item(&self, params: &DeleteParams) -> ERPResult<()> {
+        let order_items = sqlx::query_as!(
+            OrderItemModel,
+            "select * from order_items where item_id = $1",
+            params.id
+        )
+        .fetch_all(self.db.get_pool())
+        .await?;
+
+        if !order_items.is_empty() {
+            return Err(Failed("产品已有订单数据，删除不合法".to_string()));
+        }
+
+        let mut bucket_ids = sqlx::query!(
+            "select bucket_id from item_inout where item_id = $1",
+            params.id
+        )
+        .fetch_all(self.db.get_pool())
+        .await?
+        .into_iter()
+        .map(|item| item.bucket_id)
+        .collect::<Vec<i32>>();
+        if !bucket_ids.is_empty() {
+            bucket_ids.dedup();
+            sqlx::query!("delete from item_inout where item_id=$1", params.id)
+                .execute(self.db.get_pool())
+                .await?;
+            sqlx::query!(
+                "delete from item_inout_bucket where id = any($1);",
+                &bucket_ids
+            )
+            .execute(self.db.get_pool())
+            .await?;
+        }
+
         sqlx::query!("delete from items where id = $1", params.id)
             .execute(self.db.get_pool())
             .await?;

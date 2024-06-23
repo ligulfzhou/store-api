@@ -3,7 +3,7 @@ use std::collections::HashMap;
 pub const DEFAULT_PAGE_SIZE: i32 = 50;
 
 pub const STORAGE_FILE_PATH: &str = "/home/debian/lkx-data/file";
-// pub const STORAGE_FILE_PATH: &str = "/Users/ligangzhou/data/erp";
+// pub const STORAGE_FILE_PATH: &str = "/Users/ligulfzhou/data/file";
 
 pub const STORAGE_URL_PREFIX: &str = "https://lkx-api.ligulfzhou.com/file";
 // pub const STORAGE_URL_PREFIX: &str = "http://localhost/file";

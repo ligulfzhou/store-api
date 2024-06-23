@@ -8,6 +8,7 @@ use crate::config::database::DatabaseTrait;
 use crate::config::{database, parameter};
 use std::net::SocketAddr;
 use std::sync::Arc;
+// use tokio::net::TcpListener;
 
 mod common;
 mod config;
@@ -39,6 +40,12 @@ async fn main() {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     tracing::info!("=> Listen on {addr} \n");
 
+    // axum::serve(
+    //     TcpListener::bind(&addr).await?,
+    //     handler::routes(Arc::new(database)),
+    // )
+    // .await
+    // .expect("TODO: panic message");
     axum::Server::bind(&addr)
         .serve(handler::routes(Arc::new(database)))
         .await

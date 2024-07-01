@@ -161,7 +161,11 @@ pub async fn parse_items<'a>(
                 7 => cur.cates2 = cell_value.trim().to_string(),
                 8 => cur.color = cell_value.trim().to_string().to_ascii_uppercase(),
                 9 => cur.barcode = cell_value.trim().to_string(),
-                10 => cur.count = (cell_value.parse::<f32>().unwrap_or(0.0) * 10.0) as i32,
+                10 => {
+                    cur.count = cell_value
+                        .parse::<i32>()
+                        .map_err(|_| ERPError::ConvertFailed("数量必须是整数".to_string()))?
+                }
                 11 => cur.unit = cell_value.trim().to_string(),
                 12 => cur.cost = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
                 13 => cur.price = (cell_value.parse::<f32>().unwrap_or(0.0) * 100.0) as i32,
